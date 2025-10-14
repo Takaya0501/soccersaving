@@ -2,12 +2,10 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   webpack: (config, { isServer }) => {
-    // サーバーサイドでのみsqlite3を外部モジュールとして扱う
     if (isServer) {
-      config.externals = {
-        ...config.externals,
+      config.externals.push({
         'sqlite3': 'commonjs sqlite3',
-      };
+      });
     }
     return config;
   },
