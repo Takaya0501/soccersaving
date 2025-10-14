@@ -1,9 +1,8 @@
-// app/[team]/history/MatchHistoryClientPage.tsx
 'use client';
 
 import Link from 'next/link';
 import { useState } from 'react';
-import EditSavingForm from './EditSavingForm'; // ✅ パスを修正
+import EditSavingForm from './EditSavingForm';
 
 interface MatchSaving {
   id: number;
@@ -12,6 +11,9 @@ interface MatchSaving {
   match_name: string;
   amount: number;
   timestamp: string;
+  // ✅ 不足しているプロパティを追加
+  is_final: boolean;
+  is_overtime_or_pk: boolean;
 }
 
 export default function MatchHistoryClientPage({ matches, teamName }: { matches: MatchSaving[], teamName: string }) {

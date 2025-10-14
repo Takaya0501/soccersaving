@@ -9,6 +9,8 @@ interface MatchSaving {
   match_name: string;
   amount: number;
   timestamp: string;
+  is_final: boolean; // ✅ 追加
+  is_overtime_or_pk: boolean; // ✅ 追加
 }
 
 export default async function MatchHistoryPage({ params }: { params: { team: string } }) {
