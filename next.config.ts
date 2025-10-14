@@ -1,7 +1,6 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  // `sqlite3`のようなネイティブモジュールがビルド時に正しく扱われるようにする設定
   webpack: (config, { isServer }) => {
     if (isServer) {
       config.externals.push({
