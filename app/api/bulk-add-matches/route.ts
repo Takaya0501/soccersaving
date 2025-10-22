@@ -38,30 +38,26 @@ export async function POST(request: Request) {
         const competitionLower = competition.toLowerCase();
         
         // Matchモデル（複数形）を使用
-        return prisma.matches.upsert({ 
-          // 修正1: matchName -> match_name (where句)
-          where: { match_name: matchNameLower },
+        const upsertOperation = prisma.matches.upsert({ 
+          where: { match_name: matchNameLower }, // ✅ 修正: match_name
           update: {
             team: teamLower,
             competition: competitionLower,
-            // 修正2: isOvertimeOrPK -> is_overtime_or_pk (update句)
-            is_overtime_or_pk: (is_overtime_or_pk ?? false) ? 1 : 0, 
-            // 修正3: isFinal -> is_final (update句)
-            is_final: (is_final ?? false) ? 1 : 0,
+            is_overtime_or_pk: (is_overtime_or_pk ?? false) ? 1 : 0, // ✅ 修正: is_overtime_or_pk
+            is_final: (is_final ?? false) ? 1 : 0, // ✅ 修正: is_final
           },
           create: {
             team: teamLower,
             competition: competitionLower,
-            // 修正4: matchName -> match_name (create句)
-            match_name: matchNameLower,
-            // 修正5: isOvertimeOrPK -> is_overtime_or_pk (create句)
-            is_overtime_or_pk: (is_overtime_or_pk ?? false) ? 1 : 0,
-            // 修正6: isFinal -> is_final (create句)
-            is_final: (is_final ?? false) ? 1 : 0,
+            match_name: matchNameLower, // ✅ 修正: match_name
+            is_overtime_or_pk: (is_overtime_or_pk ?? false) ? 1 : 0, // ✅ 修正: is_overtime_or_pk
+            is_final: (is_final ?? false) ? 1 : 0, // ✅ 修正: is_final
           },
         });
+
+        return upsertOperation;
       })
-      // ✅ フィルタリング時に型ガードを使用し、nullではないPromise<Matches>の型であることを保証
+      // ✅ フィルタリング時に型ガードを使用し、anyを排除
       .filter((action): action is MatchesUpsertPromise => action !== null); 
 
     if (transactionActions.length === 0) {
@@ -72,8 +68,8 @@ export async function POST(request: Request) {
         });
     }
 
-    // ✅ $transactionの結果は Promise<Matches>[] となるため、anyを削除
-    const results = await prisma.$transaction(transactionActions); 
+    // ✅ $transactionの結果は Matches[] となり、anyを削除
+    const results: Matches[] = await prisma.$transaction(transactionActions); 
 
     const successfulOps = results.length;
     const skippedCount = matches.length - successfulOps;

@@ -9,9 +9,9 @@ interface MatchSaving {
   match_name: string;
   amount: number;
   timestamp: string;
-  // ✅ is_final と is_overtime_or_pk を追加
-  is_final: boolean; 
-  is_overtime_or_pk: boolean;
+  // Prismaの型定義に合わせて、snake_caseでアクセスするように変更 (既存のコードに合わせていますが、実際はサーバーから渡されるデータ構造に依存します)
+  is_final: boolean | number; 
+  is_overtime_or_pk: boolean | number;
 }
 
 interface EditFormProps {
@@ -27,23 +27,25 @@ const mainPlayers: { [key: string]: string } = {
 };
 
 export default function EditSavingForm({ match, onCancel, onUpdate }: EditFormProps) {
+  // const [matchResult, setMatchResult] = useState(''); // 削除: 未使用
   const [matchResult, setMatchResult] = useState('');
-  // ✅ 初期値を props の match から設定
-  const [isOvertimeOrPK, setIsOvertimeOrPK] = useState(match.is_overtime_or_pk);
+  // ✅ is_overtime_or_pk は number | boolean の可能性があるため、! で強制的に boolean に変換し、stateに合わせる
+  const [isOvertimeOrPK, setIsOvertimeOrPK] = useState(!!match.is_overtime_or_pk); 
   const [isStarter, setIsStarter] = useState(false);
-  const [isFukudaCommentator, setIsFukudaCommentator] = useState(false);
+  // const [isFukudaCommentator, setIsFukudaCommentator] = useState(false); // 削除: 未使用
   const [goals, setGoals] = useState(0);
   const [assists, setAssists] = useState(0);
   const [isMvp, setIsMvp] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isFukudaCommentator, setIsFukudaCommentator] = useState(false); // 必須のため再定義
 
   const handleUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
     
-    // form要素から直接値を取得するのではなく、state変数を使用
     const form = e.currentTarget;
-    const matchResult = form.matchResult.value;
+    // const matchResult = form.matchResult.value; // setMatchResultが使用済みのため、stateを使う
+    const currentMatchResult = form.matchResult.value;
     const isStarter = form.isStarter.checked;
     const isFukudaCommentator = form.isFukudaCommentator.checked;
     const goals = parseInt(form.goals.value, 10);
@@ -52,9 +54,9 @@ export default function EditSavingForm({ match, onCancel, onUpdate }: EditFormPr
 
     let recalculatedAmount = 0;
     
-    if (matchResult === 'win') recalculatedAmount += 500;
-    else if (matchResult === 'draw') recalculatedAmount += 200;
-    else if (matchResult === 'lose') recalculatedAmount += 100;
+    if (currentMatchResult === 'win') recalculatedAmount += 500;
+    else if (currentMatchResult === 'draw') recalculatedAmount += 200;
+    else if (currentMatchResult === 'lose') recalculatedAmount += 100;
     
     if (isOvertimeOrPK) recalculatedAmount += 200;
     
@@ -64,15 +66,15 @@ export default function EditSavingForm({ match, onCancel, onUpdate }: EditFormPr
     recalculatedAmount += assists * 300;
     if (isMvp) recalculatedAmount += 500;
 
-    // ✅ match.is_final を直接参照
-    if (match.is_final) {
-      if (matchResult === 'win') {
+    // ✅ match.is_final をチェック（DBから取得した値は0/1またはtrue/falseの可能性あり）
+    if (match.is_final) { 
+      if (currentMatchResult === 'win') {
         if (match.competition.includes('champions league') || match.competition.includes('europa league')) {
           recalculatedAmount += 10000;
         } else {
           recalculatedAmount += 5000;
         }
-      } else if (matchResult === 'lose') {
+      } else if (currentMatchResult === 'lose') {
         if (match.competition.includes('champions league') || match.competition.includes('europa league')) {
           recalculatedAmount += 7000;
         } else {
@@ -122,16 +124,23 @@ export default function EditSavingForm({ match, onCancel, onUpdate }: EditFormPr
           </div>
           <div className="mb-4">
             <label htmlFor="goals" className="block text-sm font-medium text-gray-700 mb-2">ゴール:</label>
-            <input type="number" id="goals" className="w-full p-3 border rounded-md" value={goals} onChange={(e) => setGoals(Number(e.target.value))} />
+            <input type="number" id="goals" name="goals" className="w-full p-3 border rounded-md" value={goals} onChange={(e) => setGoals(Number(e.target.value))} />
           </div>
           <div className="mb-4">
             <label htmlFor="assists" className="block text-sm font-medium text-gray-700 mb-2">アシスト:</label>
-            <input type="number" id="assists" className="w-full p-3 border rounded-md" value={assists} onChange={(e) => setAssists(Number(e.target.value))} />
+            <input type="number" id="assists" name="assists" className="w-full p-3 border rounded-md" value={assists} onChange={(e) => setAssists(Number(e.target.value))} />
           </div>
           <div className="mb-4">
             <label htmlFor="isMvp" className="flex items-center text-sm font-medium text-gray-700">
               <input type="checkbox" id="isMvp" className="mr-2" checked={isMvp} onChange={(e) => setIsMvp(e.target.checked)} />
               MVP獲得
+            </label>
+          </div>
+          <div className="mb-4">
+            {/* 未使用の変数に関連するチェックボックスを復活 */}
+            <label htmlFor="isFukudaCommentator" className="flex items-center text-sm font-medium text-gray-700">
+              <input type="checkbox" id="isFukudaCommentator" name="isFukudaCommentator" className="mr-2 h-4 w-4 text-blue-600 rounded" checked={isFukudaCommentator} onChange={(e) => setIsFukudaCommentator(e.target.checked)} />
+              解説福田
             </label>
           </div>
 

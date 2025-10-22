@@ -14,7 +14,8 @@ export async function POST(request: Request) {
     const normalizedCompetition = competition.toLowerCase();
 
     try {
-      const newMatch = await prisma.matches.create({ // ✅ 修正: prisma.matches
+      // ✅ 修正: prisma.matches (複数形)を使用
+      const newMatch = await prisma.matches.create({ 
         data: {
           team: normalizedTeam,
           competition: normalizedCompetition,
@@ -28,8 +29,8 @@ export async function POST(request: Request) {
         message: `試合 "${matchName}" が追加されました。`,
         match: newMatch,
       });
-    } catch (error: any) {
-      if (error.code === 'P2002') {
+    } catch (error) { // ✅ 修正: error: any を削除
+      if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
         return NextResponse.json({ message: 'この試合名は既に存在します。' }, { status: 409 });
       }
       console.error('試合の追加中にPrismaエラー:', error);

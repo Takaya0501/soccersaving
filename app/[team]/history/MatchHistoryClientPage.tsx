@@ -2,25 +2,26 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-// ✅ Prismaの型をインポート
+// Prismaの型をインポート
 import type { Savings } from '@prisma/client';
 
+// Savingsモデルの配列を型として使用
 interface MatchHistoryProps {
-  // ✅ Savings 型を使用
+  // Savings[] を使用してanyを排除
   history: Savings[];
   teamName: string;
 }
 
-// ✅ history: initialHistory に型を適用
 export default function MatchHistoryClientPage({ history: initialHistory, teamName }: MatchHistoryProps) {
-  // useStateにも型を適用
+  // Stateにも Savings[] を適用
   const [history, setHistory] = useState<Savings[]>(initialHistory);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleDelete = async (id: number) => {
-    // 画面で確認モーダルを使用 (window.confirmを直接使用)
-    if (typeof window !== 'undefined' && !window.confirm('本当にこの試合データを削除しますか？')) {
-        return;
+    // alert/confirmはカスタムUIに置き換える必要がありますが、ここでは一時的にconsole.logを使用します
+    if (!window.confirm('本当にこの試合データを削除しますか？')) {
+      console.log("Deletion cancelled.");
+      return;
     }
 
     setIsLoading(true);
@@ -36,11 +37,9 @@ export default function MatchHistoryClientPage({ history: initialHistory, teamNa
       if (response.ok) {
         setHistory(history.filter(item => item.id !== id));
       } else {
-        console.error('データの削除に失敗しました:', await response.json());
-        alert('データの削除に失敗しました。');
+        console.error('データの削除に失敗しました。');
       }
     } catch (error) {
-      alert('サーバーエラーが発生しました。');
       console.error('削除中にエラー:', error);
     } finally {
       setIsLoading(false);
@@ -66,10 +65,9 @@ export default function MatchHistoryClientPage({ history: initialHistory, teamNa
               {history.map((item) => (
                 <li key={item.id} className="flex justify-between items-center p-4 bg-gray-100 rounded-md shadow-sm">
                   <div>
-                    {/* match_name はスネークケース */}
-                    <p className="font-semibold text-gray-800">{item.match_name}</p> 
+                    {/* match_nameはsnake_caseに修正済み */}
+                    <p className="font-semibold text-gray-800">{item.match_name}</p>
                     <p className="text-sm text-gray-600">
-                      {/* timestampはDate型で渡されるので、toLocaleStringに修正 */}
                       {item.competition} - {new Date(item.timestamp).toLocaleDateString()}
                     </p>
                   </div>
@@ -77,8 +75,8 @@ export default function MatchHistoryClientPage({ history: initialHistory, teamNa
                     <p className="text-lg font-bold text-green-600">{item.amount}円</p>
                     <button
                       onClick={() => handleDelete(item.id)}
-                      className="text-red-500 hover:text-red-700 transition-colors"
-                      aria-label="削除"
+                      className="bg-red-500 text-white px-3 py-1 rounded"
+                      disabled={isLoading}
                     >
                       削除
                     </button>
