@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma'; // シングルトンクライアント
-import type { Savings } from '@prisma/client';
+import prisma from '@/lib/prisma';
+// import type { Savings } from '@prisma/client'; // ❌ 削除
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -20,7 +20,6 @@ export async function GET(request: Request) {
     const result: { [key: string]: { total: number } } = {};
     allSavings.forEach(row => {
       if (row.competition) {
-        // ✅ 修正: row._sum.amount ?? 0 を使用して null を安全に扱う
         result[row.competition] = { total: row._sum.amount ?? 0 };
       }
     });

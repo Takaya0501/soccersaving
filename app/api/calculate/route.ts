@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma'; // シングルトンクライアント
+import prisma from '@/lib/prisma';
 
 export async function POST(request: Request) {
   try {
+    // ✅ デストラクチャリングされた全ての変数が下のロジックで使用されるため、警告解消
     const {
       team,
       competition,
@@ -20,7 +21,7 @@ export async function POST(request: Request) {
       where: {
         team: team,
         competition: competition,
-        match_name: matchName, // ✅ 修正: match_name
+        match_name: matchName,
       },
     });
 
@@ -28,21 +29,49 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'この試合の記録は既に存在します。' }, { status: 409 });
     }
     
-    // PrismaスキーマのMatchesモデル（データベースではmatchesテーブル）を参照
-    const matchDetails = await prisma.matches.findUnique({ // ✅ 修正: prisma.matches
+    const matchDetails = await prisma.matches.findUnique({
       where: {
-        match_name: matchName, // ✅ 修正: match_name
+        match_name: matchName,
       },
       select: {
-        is_final: true, // ✅ 修正: is_final
+        is_final: true,
       },
     });
 
     let savingsAmount = 0;
     
-    // ... (計算ロジックは省略)
+    switch (matchResult) {
+      case 'win':
+        savingsAmount += 500;
+        break;
+      case 'draw':
+        savingsAmount += 200;
+        break;
+      case 'lose':
+        savingsAmount += 100;
+        break;
+      default:
+        break;
+    }
 
-    if (matchDetails && matchDetails.is_final === 1) { // データベースの型がInt(1)なので比較を維持
+    // ✅ 全ての変数がここで使用される (警告解消)
+    if (isOvertimeOrPK) {
+      savingsAmount += 200;
+    }
+
+    if (isStarter) {
+      savingsAmount += 200;
+    }
+    if (isFukudaCommentator) {
+      savingsAmount += 500;
+    }
+    savingsAmount += goals * 500;
+    savingsAmount += assists * 300;
+    if (isMvp) {
+      savingsAmount += 500;
+    }
+
+    if (matchDetails && matchDetails.is_final === 1) {
       if (matchResult === 'win') {
         if (competition.includes('champions league') || competition.includes('europa league')) {
           savingsAmount += 10000;
@@ -62,23 +91,17 @@ export async function POST(request: Request) {
       data: {
         team: team,
         competition: competition,
-        match_name: matchName, // ✅ 修正: match_name
+        match_name: matchName,
         amount: savingsAmount,
-        timestamp: new Date(),
+        timestamp: new Date().toISOString(),
       },
     });
 
     const totalSavingsResult = await prisma.savings.aggregate({
-      where: {
-        team: team,
-        competition: competition,
-      },
-      _sum: {
-        amount: true,
-      },
+      where: { team: team, competition: competition },
+      _sum: { amount: true },
     });
-    
-    // ... (レスポンスロジックは省略)
+
     return NextResponse.json({
       message: '貯金が計算されました。',
       addedAmount: savingsAmount,

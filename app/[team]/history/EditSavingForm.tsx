@@ -9,7 +9,7 @@ interface MatchSaving {
   match_name: string;
   amount: number;
   timestamp: string;
-  // Prismaの型定義に合わせて、snake_caseでアクセスするように変更 (既存のコードに合わせていますが、実際はサーバーから渡されるデータ構造に依存します)
+  // Prismaの型定義に合わせて、snake_caseのプロパティを維持
   is_final: boolean | number; 
   is_overtime_or_pk: boolean | number;
 }
@@ -27,30 +27,28 @@ const mainPlayers: { [key: string]: string } = {
 };
 
 export default function EditSavingForm({ match, onCancel, onUpdate }: EditFormProps) {
-  // const [matchResult, setMatchResult] = useState(''); // 削除: 未使用
+  // ✅ matchResult stateを保持し、計算ロジックで使用する
   const [matchResult, setMatchResult] = useState('');
-  // ✅ is_overtime_or_pk は number | boolean の可能性があるため、! で強制的に boolean に変換し、stateに合わせる
   const [isOvertimeOrPK, setIsOvertimeOrPK] = useState(!!match.is_overtime_or_pk); 
   const [isStarter, setIsStarter] = useState(false);
-  // const [isFukudaCommentator, setIsFukudaCommentator] = useState(false); // 削除: 未使用
+  const [isFukudaCommentator, setIsFukudaCommentator] = useState(false); // ✅ Stateを保持し、計算ロジックで使用する
   const [goals, setGoals] = useState(0);
   const [assists, setAssists] = useState(0);
   const [isMvp, setIsMvp] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isFukudaCommentator, setIsFukudaCommentator] = useState(false); // 必須のため再定義
 
   const handleUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
     
-    const form = e.currentTarget;
-    // const matchResult = form.matchResult.value; // setMatchResultが使用済みのため、stateを使う
-    const currentMatchResult = form.matchResult.value;
-    const isStarter = form.isStarter.checked;
-    const isFukudaCommentator = form.isFukudaCommentator.checked;
-    const goals = parseInt(form.goals.value, 10);
-    const assists = parseInt(form.assists.value, 10);
-    const isMvp = form.isMvp.checked;
+    // ✅ State変数を直接計算ロジックの入力として使用する
+    const currentMatchResult = matchResult;
+    const currentIsOvertimeOrPK = isOvertimeOrPK;
+    const currentIsStarter = isStarter;
+    const currentIsFukudaCommentator = isFukudaCommentator;
+    const currentGoals = goals;
+    const currentAssists = assists;
+    const currentIsMvp = isMvp;
 
     let recalculatedAmount = 0;
     
@@ -58,15 +56,14 @@ export default function EditSavingForm({ match, onCancel, onUpdate }: EditFormPr
     else if (currentMatchResult === 'draw') recalculatedAmount += 200;
     else if (currentMatchResult === 'lose') recalculatedAmount += 100;
     
-    if (isOvertimeOrPK) recalculatedAmount += 200;
+    if (currentIsOvertimeOrPK) recalculatedAmount += 200;
     
-    if (isStarter) recalculatedAmount += 200;
-    if (isFukudaCommentator) recalculatedAmount += 500;
-    recalculatedAmount += goals * 500;
-    recalculatedAmount += assists * 300;
-    if (isMvp) recalculatedAmount += 500;
+    if (currentIsStarter) recalculatedAmount += 200;
+    if (currentIsFukudaCommentator) recalculatedAmount += 500;
+    recalculatedAmount += currentGoals * 500;
+    recalculatedAmount += currentAssists * 300;
+    if (currentIsMvp) recalculatedAmount += 500;
 
-    // ✅ match.is_final をチェック（DBから取得した値は0/1またはtrue/falseの可能性あり）
     if (match.is_final) { 
       if (currentMatchResult === 'win') {
         if (match.competition.includes('champions league') || match.competition.includes('europa league')) {
@@ -100,7 +97,8 @@ export default function EditSavingForm({ match, onCancel, onUpdate }: EditFormPr
 
           <div className="mb-4">
             <label htmlFor="matchResult" className="block text-sm font-medium text-gray-700 mb-2">試合結果:</label>
-            <select id="matchResult" name="matchResult" required className="w-full p-3 border border-gray-300 rounded-md" onChange={(e) => setMatchResult(e.target.value)}>
+            {/* ✅ value={matchResult} を追加してStateを使用 */}
+            <select id="matchResult" name="matchResult" required className="w-full p-3 border border-gray-300 rounded-md" onChange={(e) => setMatchResult(e.target.value)} value={matchResult}>
               <option value="">選択してください</option>
               <option value="win">勝利</option>
               <option value="draw">引き分け</option>
@@ -123,6 +121,12 @@ export default function EditSavingForm({ match, onCancel, onUpdate }: EditFormPr
             </label>
           </div>
           <div className="mb-4">
+            <label htmlFor="isFukudaCommentator" className="flex items-center text-sm font-medium text-gray-700">
+              <input type="checkbox" id="isFukudaCommentator" className="mr-2" checked={isFukudaCommentator} onChange={(e) => setIsFukudaCommentator(e.target.checked)} />
+              解説福田
+            </label>
+          </div>
+          <div className="mb-4">
             <label htmlFor="goals" className="block text-sm font-medium text-gray-700 mb-2">ゴール:</label>
             <input type="number" id="goals" name="goals" className="w-full p-3 border rounded-md" value={goals} onChange={(e) => setGoals(Number(e.target.value))} />
           </div>
@@ -134,13 +138,6 @@ export default function EditSavingForm({ match, onCancel, onUpdate }: EditFormPr
             <label htmlFor="isMvp" className="flex items-center text-sm font-medium text-gray-700">
               <input type="checkbox" id="isMvp" className="mr-2" checked={isMvp} onChange={(e) => setIsMvp(e.target.checked)} />
               MVP獲得
-            </label>
-          </div>
-          <div className="mb-4">
-            {/* 未使用の変数に関連するチェックボックスを復活 */}
-            <label htmlFor="isFukudaCommentator" className="flex items-center text-sm font-medium text-gray-700">
-              <input type="checkbox" id="isFukudaCommentator" name="isFukudaCommentator" className="mr-2 h-4 w-4 text-blue-600 rounded" checked={isFukudaCommentator} onChange={(e) => setIsFukudaCommentator(e.target.checked)} />
-              解説福田
             </label>
           </div>
 
