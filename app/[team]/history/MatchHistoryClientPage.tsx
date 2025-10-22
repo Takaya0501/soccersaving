@@ -1,27 +1,25 @@
-// app/[team]/history/MatchHistoryClientPage.tsx
 'use client';
 
 import Link from 'next/link';
 import { useState } from 'react';
-// PrismaClientの型定義を使用 (ここではPrisma.Savingの型が正確です)
-// ただし、Prismaの型を直接インポートするとビルドに失敗することがあるため、ここでは安全な型を定義します。
+// ✅ Prismaの型をインポート
 import type { Savings } from '@prisma/client';
 
 interface MatchHistoryProps {
-  // ✅ Prismaの型を使用 (Savingsを複数形に修正)
+  // ✅ Savings 型を使用
   history: Savings[];
   teamName: string;
 }
 
+// ✅ history: initialHistory に型を適用
 export default function MatchHistoryClientPage({ history: initialHistory, teamName }: MatchHistoryProps) {
   // useStateにも型を適用
   const [history, setHistory] = useState<Savings[]>(initialHistory);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleDelete = async (id: number) => {
-    // ❌ window.confirm() は Next.js のサーバー環境（Vercel）で警告が出るため、カスタムモーダルが必要です。
-    // 今回はデプロイを優先し、暫定的に確認メッセージを console.log に置き換えます。
-    if (!confirm('本当にこの試合データを削除しますか？')) {
+    // 画面で確認モーダルを使用 (window.confirmを直接使用)
+    if (typeof window !== 'undefined' && !window.confirm('本当にこの試合データを削除しますか？')) {
         return;
     }
 
@@ -66,11 +64,12 @@ export default function MatchHistoryClientPage({ history: initialHistory, teamNa
           ) : (
             <ul className="space-y-4">
               {history.map((item) => (
-                // item.timestamp は DateTime型なので、toLocaleStringに修正
                 <li key={item.id} className="flex justify-between items-center p-4 bg-gray-100 rounded-md shadow-sm">
                   <div>
-                    <p className="font-semibold text-gray-800">{item.match_name}</p>
+                    {/* match_name はスネークケース */}
+                    <p className="font-semibold text-gray-800">{item.match_name}</p> 
                     <p className="text-sm text-gray-600">
+                      {/* timestampはDate型で渡されるので、toLocaleStringに修正 */}
                       {item.competition} - {new Date(item.timestamp).toLocaleDateString()}
                     </p>
                   </div>
@@ -92,10 +91,4 @@ export default function MatchHistoryClientPage({ history: initialHistory, teamNa
       )}
     </div>
   );
-}
-
-// 簡易的な confirm 関数をグローバルに定義 (クライアントサイドでのみ利用可能)
-if (typeof window !== 'undefined') {
-  // @ts-ignore
-  window.confirm = (message) => global.confirm(message);
 }

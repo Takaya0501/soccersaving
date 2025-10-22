@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import prisma from '@/lib/prisma'; // シングルトンクライアント
+import type { Savings } from '@prisma/client';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -16,11 +17,10 @@ export async function GET(request: Request) {
       where: { team: team },
     });
 
-    // ✅ オブジェクトの型を明示的に定義
     const result: { [key: string]: { total: number } } = {};
     allSavings.forEach(row => {
       if (row.competition) {
-        // ✅ _sum.amount が null になる可能性を考慮
+        // ✅ 修正: row._sum.amount ?? 0 を使用して null を安全に扱う
         result[row.competition] = { total: row._sum.amount ?? 0 };
       }
     });

@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma'; // シングルトンクライアント
+// ✅ Prismaの型をインポート
+import type { Prisma, Matches } from '@prisma/client';
 
+// JSONペイロードの構造を定義（入力データ）
 interface MatchData {
   team: string;
   competition: string;
@@ -9,16 +12,20 @@ interface MatchData {
   is_final?: boolean;
 }
 
+// Prismaの単一操作の返り値の型を定義
+type MatchesUpsertPromise = Prisma.Prisma__MatchesClient<Matches, never>;
+
 export async function POST(request: Request) {
   try {
-    const { matches } = await request.json();
+    const body = await request.json();
+    const matches: MatchData[] = body.matches || [];
 
     if (!Array.isArray(matches) || matches.length === 0) {
       return NextResponse.json({ message: '有効な試合データの配列を送信してください。' }, { status: 400 });
     }
 
     // $transactionで実行するアクションを準備
-    const transactionActions = matches.map((match: MatchData) => {
+    const transactionActions = matches.map((match) => {
         const { team, competition, match_name, is_overtime_or_pk, is_final } = match;
 
         // 必須データの検証
@@ -53,7 +60,9 @@ export async function POST(request: Request) {
             is_final: (is_final ?? false) ? 1 : 0,
           },
         });
-      }).filter(action => action !== null);
+      })
+      // ✅ フィルタリング時に型ガードを使用し、nullではないPromise<Matches>の型であることを保証
+      .filter((action): action is MatchesUpsertPromise => action !== null); 
 
     if (transactionActions.length === 0) {
         return NextResponse.json({
@@ -63,7 +72,8 @@ export async function POST(request: Request) {
         });
     }
 
-    const results = await prisma.$transaction(transactionActions as any); 
+    // ✅ $transactionの結果は Promise<Matches>[] となるため、anyを削除
+    const results = await prisma.$transaction(transactionActions); 
 
     const successfulOps = results.length;
     const skippedCount = matches.length - successfulOps;

@@ -7,7 +7,7 @@ export async function GET() {
       orderBy: [
         { team: 'asc' },
         { competition: 'asc' },
-        { match_name: 'asc' },
+        { match_name: 'asc' }, // ✅ 修正: match_name
       ],
     });
 
