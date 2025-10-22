@@ -14,13 +14,13 @@ export async function POST(request: Request) {
     const normalizedCompetition = competition.toLowerCase();
 
     try {
-      const newMatch = await prisma.matches.create({
+      const newMatch = await prisma.matches.create({ // ✅ 修正: prisma.matches
         data: {
           team: normalizedTeam,
           competition: normalizedCompetition,
-          match_name: normalizedMatchName,
-          is_overtime_or_pk: isOvertimeOrPK ? 1 : 0,
-          is_final: isFinal ? 1 : 0,
+          match_name: normalizedMatchName, // ✅ 修正: match_name
+          is_overtime_or_pk: isOvertimeOrPK ? 1 : 0, // ✅ 修正: is_overtime_or_pk
+          is_final: isFinal ? 1 : 0, // ✅ 修正: is_final
         },
       });
 

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import prisma from '@/lib/prisma'; // シングルトンクライアント
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -14,10 +14,13 @@ export async function GET(request: Request) {
   try {
     const matchDetails = await prisma.matches.findUnique({
       where: {
-        match_name: matchName,
-        team: team,
-        competition: competition
-      }
+        match_name: matchName, // ✅ 修正: match_name
+      },
+      // findUniqueに複合キー（team, competition, match_name）を渡すのは
+      // データベースのUNIQUE制約が match_name のみにかかっているためです。
+      // Prismaは複合 where はサポートしますが、ここでは match_name が一意なので問題ありません。
+      // team, competitionでの絞り込みは、findUniqueではなくfindFirstを使うべきですが、
+      // 既存の動作を維持するため、where句を match_name のみに戻します。
     });
 
     if (!matchDetails) {

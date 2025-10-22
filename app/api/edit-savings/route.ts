@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import prisma from '@/lib/prisma'; // シングルトンクライアント
 
 export async function POST(request: Request) {
   try {
     const { id, amount } = await request.json();
-    await prisma.savings.update({
+
+    if (typeof id !== 'number' || typeof amount !== 'number') {
+        return NextResponse.json({ message: 'IDまたは金額が無効です。' }, { status: 400 });
+    }
+
+    await prisma.savings.update({ // ✅ 修正: prisma.savings
       where: { id: id },
       data: { amount: amount },
     });
@@ -18,7 +23,12 @@ export async function POST(request: Request) {
 export async function DELETE(request: Request) {
   try {
     const { id } = await request.json();
-    await prisma.savings.delete({
+
+    if (typeof id !== 'number') {
+        return NextResponse.json({ message: 'IDが無効です。' }, { status: 400 });
+    }
+
+    await prisma.savings.delete({ // ✅ 修正: prisma.savings
       where: { id: id },
     });
     return NextResponse.json({ message: '試合データを削除しました。' });
