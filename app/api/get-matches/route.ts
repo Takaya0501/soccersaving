@@ -1,11 +1,17 @@
 import { NextResponse } from 'next/server';
-import { openDb } from '@/lib/db';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 export async function GET() {
   try {
-    const db = await openDb();
-    const matches = await db.all('SELECT * FROM matches ORDER BY team, competition, match_name');
-    await db.close();
+    const matches = await prisma.matches.findMany({
+      orderBy: [
+        { team: 'asc' },
+        { competition: 'asc' },
+        { match_name: 'asc' },
+      ],
+    });
 
     return NextResponse.json(matches);
   } catch (error) {

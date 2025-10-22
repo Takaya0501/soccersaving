@@ -1,24 +1,28 @@
 import { notFound } from 'next/navigation';
-import { openDb } from '@/lib/db';
+import { PrismaClient } from '@prisma/client';
 import TeamClientPage from './TeamClientPage';
 
-interface TeamSavings {
-  [competition: string]: { total: number };
-}
+const prisma = new PrismaClient();
 
-async function getTeamSavings(teamName: string): Promise<TeamSavings> {
-  const db = await openDb();
-  const allSavings = await db.all(
-    'SELECT competition, SUM(amount) AS total FROM savings WHERE team = ? GROUP BY competition',
-    teamName
-  );
-  await db.close();
+async function getTeamSavings(teamName: string) {
+  try {
+    const allSavings = await prisma.savings.groupBy({
+      by: ['competition'],
+      _sum: { amount: true },
+      where: { team: teamName },
+    });
 
-  const result: TeamSavings = {};
-  allSavings.forEach(row => {
-    result[row.competition] = { total: row.total };
-  });
-  return result;
+    const result = {};
+    allSavings.forEach(row => {
+      if (row.competition) {
+        result[row.competition] = { total: row._sum.amount || 0 };
+      }
+    });
+    return result;
+  } catch (error) {
+    console.error('チームの貯金額取得に失敗しました:', error);
+    return {};
+  }
 }
 
 export default async function TeamPage({ params }: { params: { team: string } }) {

@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
-import { openDb } from '@/lib/db';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -10,13 +12,19 @@ export async function GET(request: Request) {
   }
 
   try {
-    const db = await openDb();
-    const allSavings = await db.all('SELECT competition, SUM(amount) AS total FROM savings WHERE team = ? GROUP BY competition', team);
-    await db.close();
+    const allSavings = await prisma.savings.groupBy({
+      by: ['competition'],
+      _sum: { amount: true },
+      where: { team: team },
+    });
 
+    // ✅ オブジェクトの型を明示的に定義
     const result: { [key: string]: { total: number } } = {};
     allSavings.forEach(row => {
-      result[row.competition] = { total: row.total };
+      if (row.competition) {
+        // ✅ _sum.amount が null になる可能性を考慮
+        result[row.competition] = { total: row._sum.amount ?? 0 };
+      }
     });
 
     return NextResponse.json(result);

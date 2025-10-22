@@ -1,5 +1,16 @@
 import { NextResponse } from 'next/server';
-import { openDb } from '@/lib/db';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
+
+// ✅ matchの型を明示的に定義
+interface Match {
+  team: string;
+  competition: string;
+  matchName: string;
+  is_overtime_or_pk?: boolean;
+  is_final?: boolean;
+}
 
 export async function POST(request: Request) {
   try {
@@ -9,57 +20,40 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: '有効な試合データの配列を送信してください。' }, { status: 400 });
     }
 
-    const db = await openDb();
+    const transaction = await prisma.$transaction(
+      // ✅ mapの引数に型を指定
+      matches.map((match: Match) => {
+        const { team, competition, matchName, is_overtime_or_pk, is_final } = match;
 
-    await db.run('BEGIN TRANSACTION');
-
-    const stmt = await db.prepare(
-      'INSERT INTO matches (team, competition, match_name, is_overtime_or_pk, is_final) VALUES (?, ?, ?, ?, ?)'
+        return prisma.matches.upsert({
+          where: { match_name: matchName.toLowerCase() },
+          update: {
+            team: team.toLowerCase(),
+            competition: competition.toLowerCase(),
+            is_overtime_or_pk: is_overtime_or_pk ? 1 : 0,
+            is_final: is_final ? 1 : 0,
+          },
+          create: {
+            team: team.toLowerCase(),
+            competition: competition.toLowerCase(),
+            match_name: matchName.toLowerCase(),
+            is_overtime_or_pk: is_overtime_or_pk ? 1 : 0,
+            is_final: is_final ? 1 : 0,
+          },
+        });
+      })
     );
 
-    let addedCount = 0;
-    let skippedCount = 0;
-
-    for (const match of matches) {
-      const { team, competition, match_name, is_overtime_or_pk, is_final } = match;
-
-      if (!team || !competition || !match_name) {
-        skippedCount++;
-        continue;
-      }
-
-      const existingEntry = await db.get(
-        'SELECT id FROM matches WHERE team = ? AND competition = ? AND match_name = ?',
-        team.toLowerCase(),
-        competition.toLowerCase(),
-        match_name.toLowerCase()
-      );
-
-      if (existingEntry) {
-        skippedCount++;
-        continue;
-      }
-
-      const isOvertimeOrPK = is_overtime_or_pk ? 1 : 0;
-      const isFinal = is_final ? 1 : 0;
-
-      await stmt.run(team.toLowerCase(), competition.toLowerCase(), match_name.toLowerCase(), isOvertimeOrPK, isFinal);
-      addedCount++;
-    }
-
-    await stmt.finalize();
-
-    await db.run('COMMIT');
-    await db.close();
-
     return NextResponse.json({
-      message: `${addedCount}件の試合が追加されました。${skippedCount}件はスキップされました（重複または無効なデータ）。`,
-      addedCount,
-      skippedCount
+      message: `${transaction.length}件の試合が追加または更新されました。`,
+      addedCount: transaction.length,
+      skippedCount: 0
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('一括追加中にエラー:', error);
-
+    if (error.code === 'P2002') {
+      return NextResponse.json({ message: '一部の試合はすでに存在するためスキップされました。' }, { status: 409 });
+    }
     return NextResponse.json({ message: 'サーバーエラーが発生しました。' }, { status: 500 });
   }
 }

@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
-import { openDb } from '@/lib/db';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 export async function POST(request: Request) {
   try {
@@ -30,46 +32,45 @@ export async function POST(request: Request) {
       awardAmount = 2000;
     }
 
-
     if (awardAmount === 0) {
       return NextResponse.json({ message: '指定された順位と大会では貯金が発生しません。' }, { status: 400 });
     }
 
-    const db = await openDb();
-
-    const existingAward = await db.get(
-      'SELECT id FROM awards WHERE team = ? AND competition = ?',
-      normalizedTeam,
-      normalizedCompetition
-    );
+    const existingAward = await prisma.awards.findUnique({
+      where: {
+        team_competition: {
+          team: normalizedTeam,
+          competition: normalizedCompetition,
+        },
+      },
+    });
 
     if (existingAward) {
-      await db.close();
       return NextResponse.json({ message: 'このチームのこの大会の順位は既に記録済みです。' }, { status: 409 });
     }
 
-    await db.run(
-      'INSERT INTO awards (team, competition, rank, amount) VALUES (?, ?, ?, ?)',
-      normalizedTeam,
-      normalizedCompetition,
-      rank,
-      awardAmount
-    );
+    await prisma.awards.create({
+      data: {
+        team: normalizedTeam,
+        competition: normalizedCompetition,
+        rank: rank,
+        amount: awardAmount,
+      },
+    });
 
-    await db.run(
-      'INSERT INTO savings (team, competition, match_name, amount, timestamp) VALUES (?, ?, ?, ?, ?)',
-      normalizedTeam,
-      normalizedCompetition,
-      `Rank ${rank}`,
-      awardAmount,
-      new Date().toISOString()
-    );
-
-    await db.close();
+    await prisma.savings.create({
+      data: {
+        team: normalizedTeam,
+        competition: normalizedCompetition,
+        match_name: `Rank ${rank}`,
+        amount: awardAmount,
+        timestamp: new Date().toISOString(),
+      },
+    });
 
     return NextResponse.json({
       message: `${team}の${competition}での${rank}位が記録されました。`,
-      addedAmount: awardAmount
+      addedAmount: awardAmount,
     });
   } catch (error) {
     console.error('順位による貯金加算中にエラー:', error);

@@ -1,29 +1,24 @@
-import Link from 'next/link';
-import { openDb } from '@/lib/db';
+// app/[team]/history/page.tsx
+import { PrismaClient } from '@prisma/client';
 import MatchHistoryClientPage from './MatchHistoryClientPage';
 
-interface MatchSaving {
-  id: number;
-  team: string;
-  competition: string;
-  match_name: string;
-  amount: number;
-  timestamp: string;
-  is_final: boolean; // ✅ 追加
-  is_overtime_or_pk: boolean; // ✅ 追加
+const prisma = new PrismaClient();
+
+async function getMatchHistory(team: string) {
+  const history = await prisma.savings.findMany({
+    where: { team: team },
+    orderBy: {
+      timestamp: 'desc',
+    },
+  });
+  return history;
 }
 
 export default async function MatchHistoryPage({ params }: { params: { team: string } }) {
   const teamName = params.team;
-  let matches: MatchSaving[] = [];
+  const history = await getMatchHistory(teamName);
 
-  try {
-    const db = await openDb();
-    matches = await db.all('SELECT * FROM savings WHERE team = ? ORDER BY timestamp DESC', teamName);
-    await db.close();
-  } catch (error) {
-    console.error('試合履歴の取得に失敗しました:', error);
-  }
-
-  return <MatchHistoryClientPage matches={matches} teamName={teamName} />;
+  return (
+    <MatchHistoryClientPage history={history} teamName={teamName} />
+  );
 }

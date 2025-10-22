@@ -2,15 +2,19 @@
   "name": "soccersaving",
   "version": "0.1.0",
   "private": true,
- "scripts": {
-  "dev": "next dev",
-  "build": "next build",
-  "start": "next start",
-  "build:vercel": "next build"
-},
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "build:vercel": "next build"
+  },
   "dependencies": {
+    "@prisma/client": "^6.17.1",
     "@types/minimatch": "^6.0.0",
+    "axios": "^1.12.2",
     "next": "15.5.4",
+    "pg": "^8.16.3",
+    "prisma": "^6.17.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "sqlite": "^5.1.1",
@@ -19,12 +23,13 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/node": "^20.19.21",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.5.4",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
   }
 }

@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
-import { openDb } from '@/lib/db';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -12,14 +14,13 @@ export async function GET(request: Request) {
   }
 
   try {
-    const db = await openDb();
-    const matchDetails = await db.get(
-      'SELECT * FROM matches WHERE team = ? AND competition = ? AND match_name = ?',
-      team,
-      competition,
-      matchName
-    );
-    await db.close();
+    const matchDetails = await prisma.matches.findUnique({
+      where: {
+        match_name: matchName,
+        team: team,
+        competition: competition
+      }
+    });
 
     if (!matchDetails) {
       return NextResponse.json({ message: '試合情報が見つかりません。' }, { status: 404 });

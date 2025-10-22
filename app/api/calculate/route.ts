@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
-import { openDb } from '@/lib/db';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 export async function POST(request: Request) {
   try {
@@ -16,26 +18,26 @@ export async function POST(request: Request) {
       isMvp,
     } = await request.json();
 
-    const db = await openDb();
-
-    const existingMatch = await db.get(
-      'SELECT id FROM savings WHERE team = ? AND competition = ? AND match_name = ?',
-      team,
-      competition,
-      matchName
-    );
+    const existingMatch = await prisma.savings.findFirst({
+      where: {
+        team: team,
+        competition: competition,
+        match_name: matchName,
+      },
+    });
 
     if (existingMatch) {
-      await db.close();
       return NextResponse.json({ message: 'この試合の記録は既に存在します。' }, { status: 409 });
     }
     
-    const matchDetails = await db.get(
-      'SELECT is_final FROM matches WHERE team = ? AND competition = ? AND match_name = ?',
-      team,
-      competition,
-      matchName
-    );
+    const matchDetails = await prisma.matches.findUnique({
+      where: {
+        match_name: matchName,
+      },
+      select: {
+        is_final: true,
+      },
+    });
 
     let savingsAmount = 0;
     
@@ -69,7 +71,7 @@ export async function POST(request: Request) {
       savingsAmount += 500;
     }
 
-    if (matchDetails && matchDetails.is_final) {
+    if (matchDetails && matchDetails.is_final === 1) {
       if (matchResult === 'win') {
         if (competition.includes('champions league') || competition.includes('europa league')) {
           savingsAmount += 10000;
@@ -85,24 +87,30 @@ export async function POST(request: Request) {
       }
     }
 
-    await db.run(
-      'INSERT INTO savings (team, competition, match_name, amount, timestamp) VALUES (?, ?, ?, ?, ?)',
-      team,
-      competition,
-      matchName,
-      savingsAmount,
-      new Date().toISOString()
-    );
+    await prisma.savings.create({
+      data: {
+        team: team,
+        competition: competition,
+        match_name: matchName,
+        amount: savingsAmount,
+        timestamp: new Date(),
+      },
+    });
 
-    const totalSavingsResult = await db.get('SELECT SUM(amount) AS total FROM savings WHERE team = ? AND competition = ?', team, competition);
-    const currentSavings = totalSavingsResult.total || 0;
-
-    await db.close();
-
+    const totalSavingsResult = await prisma.savings.aggregate({
+      where: {
+        team: team,
+        competition: competition,
+      },
+      _sum: {
+        amount: true,
+      },
+    });
+    
     return NextResponse.json({
       message: '貯金が計算されました。',
       addedAmount: savingsAmount,
-      currentSavings: currentSavings,
+      currentSavings: totalSavingsResult._sum.amount || 0,
     });
   } catch (error) {
     console.error('貯金計算中にエラー:', error);
