@@ -1,0 +1,42 @@
+import { NextResponse } from 'next/server';
+import prisma from '@/lib/prisma';
+
+export async function POST(request: Request) {
+  try {
+    const { team, competition, matchName, isOvertimeOrPK, isFinal } = await request.json();
+
+    if (!team || !competition || !matchName) {
+      return NextResponse.json({ message: 'チーム、大会、試合名を指定してください。' }, { status: 400 });
+    }
+
+    const normalizedMatchName = matchName.toLowerCase();
+    const normalizedTeam = team.toLowerCase();
+    const normalizedCompetition = competition.toLowerCase();
+
+    try {
+      const newMatch = await prisma.matches.create({
+        data: {
+          team: normalizedTeam,
+          competition: normalizedCompetition,
+          match_name: normalizedMatchName,
+          is_overtime_or_pk: isOvertimeOrPK ? 1 : 0,
+          is_final: isFinal ? 1 : 0,
+        },
+      });
+
+      return NextResponse.json({
+        message: `試合 "${matchName}" が追加されました。`,
+        match: newMatch,
+      });
+    } catch (error: any) {
+      if (error.code === 'P2002') {
+        return NextResponse.json({ message: 'この試合名は既に存在します。' }, { status: 409 });
+      }
+      console.error('試合の追加中にPrismaエラー:', error);
+      return NextResponse.json({ message: '試合の追加に失敗しました。' }, { status: 500 });
+    }
+  } catch (error) {
+    console.error('試合の追加中にエラー:', error);
+    return NextResponse.json({ message: 'サーバーエラーが発生しました。' }, { status: 500 });
+  }
+}

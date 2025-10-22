@@ -1,8 +1,8 @@
 // app/[team]/history/page.tsx
-import { PrismaClient } from '@prisma/client';
+import prisma from '@/lib/prisma';
 import MatchHistoryClientPage from './MatchHistoryClientPage';
 
-const prisma = new PrismaClient();
+
 
 async function getMatchHistory(team: string) {
   const history = await prisma.savings.findMany({

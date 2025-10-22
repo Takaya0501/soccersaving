@@ -1,10 +1,14 @@
 import { notFound } from 'next/navigation';
-import { PrismaClient } from '@prisma/client';
+import prisma from '@/lib/prisma';
 import TeamClientPage from './TeamClientPage';
 
-const prisma = new PrismaClient();
+interface TeamSavings {
+  // インデックスシグネチャ
+  [competition: string]: { total: number }; 
+}
 
-async function getTeamSavings(teamName: string) {
+// ✅ 戻り値の型を明示的に指定 (Promise<TeamSavings>)
+async function getTeamSavings(teamName: string): Promise<TeamSavings> {
   try {
     const allSavings = await prisma.savings.groupBy({
       by: ['competition'],
@@ -12,10 +16,15 @@ async function getTeamSavings(teamName: string) {
       where: { team: teamName },
     });
 
-    const result = {};
+    // ✅ 変数 'result' に型 (TeamSavings) を明示的に指定
+    const result: TeamSavings = {}; 
+    
     allSavings.forEach(row => {
+      // competitionがnullになることはPrismaのgroupByのby: ['competition']の指定により通常ありえませんが、
+      // 念の為のチェックとして残しておくのは安全です。
       if (row.competition) {
-        result[row.competition] = { total: row._sum.amount || 0 };
+        // row._sum.amountは number | null なので、|| 0 ではなく ?? 0 がより正確
+        result[row.competition] = { total: row._sum.amount ?? 0 };
       }
     });
     return result;
@@ -28,7 +37,8 @@ async function getTeamSavings(teamName: string) {
 export default async function TeamPage({ params }: { params: { team: string } }) {
   const teamName = params.team;
   
+  // getTeamSavingsの戻り値の型が確定したため、この変数も安全になります
   const teamSavings = await getTeamSavings(teamName);
 
-  return <TeamClientPage teamName={teamName} teamSavings={teamSavings} />;
+  return <TeamClientPage teamName={teamName} teamSavings={teamSavings as TeamSavings} />;
 }
