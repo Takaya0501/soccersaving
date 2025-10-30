@@ -29,3 +29,13 @@ model Savings {
    is_overtime_or_pk Int     @default(0)
    is_final          Int     @default(0)
  }
+
+ model Awards {
+   id          Int    @id @default(autoincrement())
+   team        String
+   competition String
+   rank        Int
+   amount      Int
+
+   @@unique([team, competition])
+ }

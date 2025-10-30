@@ -45,8 +45,7 @@ export type MatchSavingWithDetails = Savings & Pick<Matches, 'is_final' | 'is_ov
 
 // ⬇️ 修正: { params } を { params: p } に変更
 export default async function MatchHistoryPage({ params: p }: { params: { team: string } }) {
-  const params = await p; // ⬅️ 修正: params オブジェクトを await する
-  const teamName = params.team;
+  const teamName = p.team; // ⬅️ 修正: params.team を p.team に変更
   const history = await getMatchHistory(teamName);
 
   return (
