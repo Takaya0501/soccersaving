@@ -1,5 +1,4 @@
 // app/[team]/history/page.tsx
-// Vercel
 import prisma from '@/lib/prisma';
 import MatchHistoryClientPage from './MatchHistoryClientPage';
 // ⬇️ 修正: Matches と Savings をインポート
@@ -54,4 +53,3 @@ export default async function MatchHistoryPage({ params: p }: { params: { team: 
     <MatchHistoryClientPage history={history} teamName={teamName} />
   );
 }
-
