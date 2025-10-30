@@ -4,16 +4,28 @@ import prisma from '@/lib/prisma'; // シングルトンクライアント
 // POST: 既存の貯金レコードの金額を更新
 export async function POST(request: Request) {
   try {
-    const { id, amount } = await request.json();
+    const { id, amount, matchDate } = await request.json(); // matchDate を追加
 
     if (typeof id !== 'number' || typeof amount !== 'number') {
         return NextResponse.json({ message: 'IDまたは金額が無効です。' }, { status: 400 });
     }
 
+    // matchDate のバリデーションと変換
+    let matchDateObj = null;
+    if (matchDate) {
+        matchDateObj = new Date(matchDate);
+        if (isNaN(matchDateObj.getTime())) {
+            return NextResponse.json({ message: '試合日の形式が無効です。' }, { status: 400 });
+        }
+    } // <-- ここにあった余分な閉じ括弧を削除しました
+
     // Savingsモデル（複数形）を使用
     const updatedSaving = await prisma.savings.update({
       where: { id: id },
-      data: { amount: amount },
+      data: {
+          amount: amount,
+          match_date: matchDateObj // 試合日を更新
+      },
     });
     
     // 成功時に更新されたレコードを返す

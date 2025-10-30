@@ -38,6 +38,7 @@ export default function BulkAddMatchesPage() {
   {
     "team": "liverpool",
     "competition": "premier league",
+    "match_date": "2025-10-29",
     "match_name": "M39: [A]NewMatch",
     "is_final": false,
     "is_overtime_or_pk": false
@@ -67,8 +68,8 @@ export default function BulkAddMatchesPage() {
               onChange={(e) => setJsonText(e.target.value)}
               required
               className="w-full p-3 border border-gray-300 rounded-md"
-              placeholder={`例:\n[ { &#34;team&#34;: &#34;liverpool&#34;, &#34;competition&#34;: &#34;premier league&#34;, &#34;match_name&#34;: &#34;M39: [A]NewMatch&#34; } ]`}
-            ></textarea>
+              placeholder={`例:\n[ { "team": "liverpool", "competition": "premier league", "match_date": "2025-10-29", "match_name": "M39: [A]NewMatch" } ]`} // プレースホルダー更新
+          ></textarea>
           </div>
           <button type="submit" className="w-full py-3 px-4 bg-green-600 text-white font-bold rounded-md hover:bg-green-700 transition duration-300">
             まとめて追加

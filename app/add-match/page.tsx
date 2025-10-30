@@ -22,6 +22,7 @@ export default function AddMatchPage() {
     const team = form.team.value;
     const competition = form.competition.value;
     const matchName = form.matchName.value;
+    const matchDate = form.matchDate.value; // matchDate を取得
     const isOvertimeOrPK = form.isOvertimeOrPK.checked;
     const isFinal = form.isFinal.checked;
 
@@ -31,7 +32,7 @@ export default function AddMatchPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ team, competition, matchName, isOvertimeOrPK, isFinal }),
+        body: JSON.stringify({ team, competition, matchName, matchDate, isOvertimeOrPK, isFinal }), // matchDate を追加
       });
 
       const data = await response.json();
@@ -77,6 +78,11 @@ export default function AddMatchPage() {
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>
+          </div>
+
+          <div className="mb-6">
+          <label htmlFor="matchDate" className="block text-sm font-medium text-gray-700 mb-2">試合日:</label>
+            <input type="date" id="matchDate" name="matchDate" className="w-full p-3 border border-gray-300 rounded-md" />
           </div>
 
           <div className="mb-6">

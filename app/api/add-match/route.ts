@@ -3,7 +3,7 @@ import prisma from '@/lib/prisma';
 
 export async function POST(request: Request) {
   try {
-    const { team, competition, matchName, isOvertimeOrPK, isFinal } = await request.json();
+    const { team, competition, matchName, matchDate, isOvertimeOrPK, isFinal } = await request.json(); // matchDate を追加
 
     if (!team || !competition || !matchName) {
       return NextResponse.json({ message: 'チーム、大会、試合名を指定してください。' }, { status: 400 });
@@ -20,6 +20,7 @@ export async function POST(request: Request) {
           team: normalizedTeam,
           competition: normalizedCompetition,
           match_name: normalizedMatchName, // ✅ 修正: match_name
+          match_date: matchDate, // matchDate を追加
           is_overtime_or_pk: isOvertimeOrPK ? 1 : 0, // ✅ 修正: is_overtime_or_pk
           is_final: isFinal ? 1 : 0, // ✅ 修正: is_final
         },

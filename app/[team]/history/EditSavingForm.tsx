@@ -1,7 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+// ページコンポーネントから型をインポートし、エラーメッセージに合わせてリネーム
+import type { MatchSavingWithDetails as MatchSaving } from './page';
 
+// 編集フォームが受け取る match プロパティの型
+// 独自の MatchSaving 型を削除し、インポートした型（リネーム済み）を使用
+/*
 interface MatchSaving {
   id: number;
   team: string;
@@ -13,11 +18,12 @@ interface MatchSaving {
   is_final: boolean | number; 
   is_overtime_or_pk: boolean | number;
 }
+*/
 
 interface EditFormProps {
-  match: MatchSaving;
+  match: MatchSaving; // ⬅️ 修正: リネームした型を使用
   onCancel: () => void;
-  onUpdate: (id: number, amount: number) => void;
+  onUpdate: (id: number, amount: number, matchDate: string | null) => void;
 }
 
 const mainPlayers: { [key: string]: string } = {
@@ -29,6 +35,8 @@ const mainPlayers: { [key: string]: string } = {
 export default function EditSavingForm({ match, onCancel, onUpdate }: EditFormProps) {
   // ✅ matchResult stateを保持し、計算ロジックで使用する
   const [matchResult, setMatchResult] = useState('');
+  // ⬅️ 修正: match.match_date (Date | null) から初期値を設定
+  const [matchDate, setMatchDate] = useState<string>(match.match_date ? new Date(match.match_date).toISOString().split('T')[0] : '');
   const [isOvertimeOrPK, setIsOvertimeOrPK] = useState(!!match.is_overtime_or_pk); 
   const [isStarter, setIsStarter] = useState(false);
   const [isFukudaCommentator, setIsFukudaCommentator] = useState(false); // ✅ Stateを保持し、計算ロジックで使用する
@@ -42,6 +50,8 @@ export default function EditSavingForm({ match, onCancel, onUpdate }: EditFormPr
     setIsSubmitting(true);
     
     // ✅ State変数を直接計算ロジックの入力として使用する
+    // ⬅️ 修正: matchDate (string) から Date オブジェクトまたは null を作成
+    const currentMatchDate = matchDate ? new Date(matchDate).toISOString() : null;
     const currentMatchResult = matchResult;
     const currentIsOvertimeOrPK = isOvertimeOrPK;
     const currentIsStarter = isStarter;
@@ -80,7 +90,7 @@ export default function EditSavingForm({ match, onCancel, onUpdate }: EditFormPr
       }
     }
     
-    onUpdate(match.id, recalculatedAmount);
+    onUpdate(match.id, recalculatedAmount, currentMatchDate);
   };
 
   return (
@@ -91,7 +101,11 @@ export default function EditSavingForm({ match, onCancel, onUpdate }: EditFormPr
           <div className="mb-4">
             <p className="text-sm font-medium text-gray-700">チーム: <span className="font-bold">{match.team}</span></p>
             <p className="text-sm font-medium text-gray-700">大会: <span className="font-bold">{match.competition}</span></p>
-            <p className="text-sm font-medium text-gray-700">試合名: <span className="font-bold">{match.match_name}</span></p>
+            <p className="text-sm font-medium text-gray-700 mb-2">試合名: <span className="font-bold">{match.match_name}</span></p>
+             {/* 試合日の入力欄 */}
+            <label htmlFor="matchDate" className="block text-sm font-medium text-gray-700 mb-1">試合日:</label>
+            <input type="date" id="matchDate" name="matchDate" value={matchDate} onChange={(e) => setMatchDate(e.target.value)} className="w-full p-2 border border-gray-300 rounded-md" />
+
           </div>
           <hr className="my-4" />
 
@@ -150,3 +164,4 @@ export default function EditSavingForm({ match, onCancel, onUpdate }: EditFormPr
     </div>
   );
 }
+

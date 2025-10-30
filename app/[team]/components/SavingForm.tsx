@@ -23,6 +23,7 @@ interface Match {
   team: string;
   competition: string;
   match_name: string;
+  match_date: string | null; // Date型またはnull
   is_overtime_or_pk: number;
 }
 
@@ -35,6 +36,7 @@ const mainPlayers: { [key: string]: string } = {
 export default function SavingForm({ teamName, setTeamSavings, teamSavings }: SavingFormProps) {
   const [selectedCompetition, setSelectedCompetition] = useState('');
   const [selectedMatchName, setSelectedMatchName] = useState('');
+  const [selectedMatchDate, setSelectedMatchDate] = useState<string | null>(null); // 試合日を保持する State
   const [isOvertimeOrPK, setIsOvertimeOrPK] = useState(false);
   const [allMatches, setAllMatches] = useState<Match[]>([]);
   const [filteredMatches, setFilteredMatches] = useState<Match[]>([]);
@@ -68,11 +70,13 @@ export default function SavingForm({ teamName, setTeamSavings, teamSavings }: Sa
     const fetchMatchDetails = async () => {
       if (!selectedMatchName || !selectedCompetition) {
         setIsOvertimeOrPK(false);
+        setSelectedMatchDate(null); // 日付もリセット
         return;
       }
       try {
         const response = await fetch(`/api/get-match-details?team=${teamName}&competition=${selectedCompetition}&matchName=${selectedMatchName}`);
         const data: Match = await response.json();
+        setSelectedMatchDate(data.match_date); // 試合日を State にセット
         setIsOvertimeOrPK(data.is_overtime_or_pk === 1);
       } catch (error) {
         console.error('試合詳細の取得に失敗しました:', error);
@@ -175,6 +179,13 @@ export default function SavingForm({ teamName, setTeamSavings, teamSavings }: Sa
             ))}
           </select>
         </div>
+
+        {/* 選択された試合の日付を表示 (任意) */}
+        {selectedMatchDate && (
+          <div className="mb-6 text-sm text-gray-600">
+            試合日: {new Date(selectedMatchDate).toLocaleDateString()}
+          </div>
+        )}
 
         <div className="mb-6">
           <label htmlFor="matchResult" className="block text-sm font-medium text-gray-700 mb-2">試合結果:</label>

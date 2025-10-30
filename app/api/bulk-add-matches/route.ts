@@ -8,6 +8,7 @@ interface MatchData {
   team: string;
   competition: string;
   match_name: string; // JSONペイロードのキー
+  match_date?: string; // ⬅️ 修正: match_date を追加 (任意)
   is_overtime_or_pk?: boolean;
   is_final?: boolean;
 }
@@ -26,7 +27,7 @@ export async function POST(request: Request) {
 
     // $transactionで実行するアクションを準備
     const transactionActions = matches.map((match) => {
-        const { team, competition, match_name, is_overtime_or_pk, is_final } = match;
+        const { team, competition, match_name, match_date, is_overtime_or_pk, is_final } = match; // match_date を追加
 
         // 必須データの検証
         if (!team || !competition || !match_name) {
@@ -37,12 +38,19 @@ export async function POST(request: Request) {
         const teamLower = team.toLowerCase();
         const competitionLower = competition.toLowerCase();
         
+        // match_date の処理
+        const matchDateObj = match_date ? new Date(match_date) : null;
+        if (matchDateObj && isNaN(matchDateObj.getTime())) {
+           return null; // 不正な日付はスキップ
+        }
+
         // Matchモデル（複数形）を使用
         const upsertOperation = prisma.matches.upsert({ 
           where: { match_name: matchNameLower }, // ✅ 修正: match_name
           update: {
             team: teamLower,
             competition: competitionLower,
+            match_date: matchDateObj, // match_date を更新
             is_overtime_or_pk: (is_overtime_or_pk ?? false) ? 1 : 0, // ✅ 修正: is_overtime_or_pk
             is_final: (is_final ?? false) ? 1 : 0, // ✅ 修正: is_final
           },
@@ -50,6 +58,7 @@ export async function POST(request: Request) {
             team: teamLower,
             competition: competitionLower,
             match_name: matchNameLower, // ✅ 修正: match_name
+            match_date: matchDateObj, // match_date を作成
             is_overtime_or_pk: (is_overtime_or_pk ?? false) ? 1 : 0, // ✅ 修正: is_overtime_or_pk
             is_final: (is_final ?? false) ? 1 : 0, // ✅ 修正: is_final
           },

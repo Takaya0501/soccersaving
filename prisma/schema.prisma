@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,32 +8,24 @@ datasource db {
 }
 
 model Savings {
-  id          Int      @id @default(autoincrement())
-  team        String
-  competition String
-  match_name  String
-  amount      Int
-  timestamp   DateTime @default(now())
+   id          Int      @id @default(autoincrement())
+   team        String
+   competition String
+   match_name  String
+   amount      Int
+   match_date  DateTime? // 試合日を追加 (任意)
+   timestamp   DateTime @default(now())
 
-  @@index([team])
-  @@index([competition])
-}
+   @@index([team])
+   @@index([competition])
+ }
 
-model Matches {
-  id                 Int     @id @default(autoincrement())
-  team               String
-  competition        String
-  match_name         String  @unique // ✅ ここを追加
-  is_overtime_or_pk  Int     @default(0)
-  is_final           Int     @default(0)
-}
-
-model Awards {
-  id          Int      @id @default(autoincrement())
-  team        String
-  competition String
-  rank        Int
-  amount      Int
-
-  @@unique([team, competition])
-}
+ model Matches {
+   id                Int     @id @default(autoincrement())
+   team              String
+   competition       String
+   match_name        String  @unique
+   match_date        DateTime? // 試合日を追加 (任意)
+   is_overtime_or_pk Int     @default(0)
+   is_final          Int     @default(0)
+ }

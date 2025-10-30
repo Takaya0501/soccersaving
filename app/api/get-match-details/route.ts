@@ -16,6 +16,16 @@ export async function GET(request: Request) {
       where: {
         match_name: matchName, // ✅ 修正: match_name
       },
+
+      select: {
+        id: true,
+        team: true,
+        competition: true,
+        match_name: true,
+        match_date: true, // 試合日を追加
+        is_overtime_or_pk: true,
+        is_final: true,
+      }
       // findUniqueに複合キー（team, competition, match_name）を渡すのは
       // データベースのUNIQUE制約が match_name のみにかかっているためです。
       // Prismaは複合 where はサポートしますが、ここでは match_name が一意なので問題ありません。

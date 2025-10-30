@@ -2,7 +2,6 @@
   "name": "soccersaving",
   "version": "0.1.0",
   "private": true,
-  
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -11,12 +10,11 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
-    "@prisma/client": "^6.17.1",
+    "@prisma/client": "^6.18.0",
     "@types/minimatch": "^6.0.0",
     "axios": "^1.12.2",
     "next": "15.5.4",
     "pg": "^8.16.3",
-    "prisma": "^6.17.1",
     "react": "19.1.0",
     "react-dom": "19.1.0"
   },
@@ -28,9 +26,9 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.5.4",
+    "prisma": "^6.18.0",
     "tailwindcss": "^4",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3",
-    "prisma": "^5.16.1"
+    "typescript": "^5.9.3"
   }
 }

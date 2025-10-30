@@ -17,6 +17,16 @@ export async function POST(request: Request) {
       isMvp,
     } = await request.json();
 
+    // Savings テーブルに追加するため、試合日を取得
+    const matchInfo = await prisma.matches.findUnique({
+      where: { match_name: matchName },
+      select: { match_date: true, is_final: true }, // is_final も一緒に取得
+    });
+
+    // 試合情報が見つからない、または日付がない場合はエラーとするか、nullを許容するか検討
+    // ここでは null を許容する
+    const matchDate = matchInfo?.match_date;
+
     const existingMatch = await prisma.savings.findFirst({
       where: {
         team: team,
@@ -29,14 +39,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'この試合の記録は既に存在します。' }, { status: 409 });
     }
     
-    const matchDetails = await prisma.matches.findUnique({
-      where: {
-        match_name: matchName,
-      },
-      select: {
-        is_final: true,
-      },
-    });
+    // const matchDetails = await prisma.matches.findUnique({
+    //   where: {
+    //     match_name: matchName,
+    //   },
+    //   select: {
+    //   },
+    // });
 
     let savingsAmount = 0;
     
@@ -71,7 +80,7 @@ export async function POST(request: Request) {
       savingsAmount += 500;
     }
 
-    if (matchDetails && matchDetails.is_final === 1) {
+    if (matchInfo && matchInfo.is_final === 1) { // 変更
       if (matchResult === 'win') {
         if (competition.includes('champions league') || competition.includes('europa league')) {
           savingsAmount += 10000;
@@ -93,6 +102,7 @@ export async function POST(request: Request) {
         competition: competition,
         match_name: matchName,
         amount: savingsAmount,
+        match_date: matchDate,
         timestamp: new Date().toISOString(),
       },
     });
