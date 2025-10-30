@@ -37,7 +37,6 @@ async function getTeamSavings(teamName: string): Promise<TeamSavings> {
 // ⬇️ 修正: { params } を { params: p } に変更
 export default async function TeamPage({ params: p }: { params: { team: string } }) {
   const teamName = p.team; // ⬅️ 修正: params.team を p.team に変更
-  
   // getTeamSavingsの戻り値の型が確定したため、この変数も安全になります
   const teamSavings = await getTeamSavings(teamName);
 
