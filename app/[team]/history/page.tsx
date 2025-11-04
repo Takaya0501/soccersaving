@@ -43,8 +43,14 @@ async function getMatchHistory(team: string): Promise<MatchSavingWithDetails[]> 
 export type MatchSavingWithDetails = Savings & Pick<Matches, 'is_final' | 'is_overtime_or_pk'>;
 */
 
-export default async function MatchHistoryPage({ params: p }: { params: { team: string } }) {
-  const teamName = p.team;
+// ⬇️ 修正: Propsの型を正しく定義
+interface HistoryPageProps {
+  params: { team: string };
+  searchParams?: { [key: string]: string | string[] | undefined };
+}
+
+export default async function MatchHistoryPage({ params }: HistoryPageProps) {
+  const teamName = params.team;
   const history = await getMatchHistory(teamName);
 
   return (
