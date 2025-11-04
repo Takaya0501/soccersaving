@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-// ページコンポーネントから型をインポート
-import type { MatchSavingWithDetails } from './page';
+// ⬇️ 修正: インポート先を './page' から './types' に変更
+import type { MatchSavingWithDetails } from './types';
 // 編集フォームをインポート
 import EditSavingForm from './EditSavingForm';
 

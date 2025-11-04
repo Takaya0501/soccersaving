@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-// ページコンポーネントから型をインポートし、エラーメッセージに合わせてリネーム
-import type { MatchSavingWithDetails as MatchSaving } from './page';
+// ⬇️ 修正: インポート先を './page' から './types' に変更
+import type { MatchSavingWithDetails as MatchSaving } from './types';
 
 // 編集フォームが受け取る match プロパティの型
 // 独自の MatchSaving 型を削除し、インポートした型（リネーム済み）を使用
