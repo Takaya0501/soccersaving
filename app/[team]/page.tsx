@@ -20,10 +20,7 @@ async function getTeamSavings(teamName: string): Promise<TeamSavings> {
     const result: TeamSavings = {}; 
     
     allSavings.forEach(row => {
-      // competitionがnullになることはPrismaのgroupByのby: ['competition']の指定により通常ありえませんが、
-      // 念の為のチェックとして残しておくのは安全です。
       if (row.competition) {
-        // row._sum.amountは number | null なので、|| 0 ではなく ?? 0 がより正確
         result[row.competition] = { total: row._sum.amount ?? 0 };
       }
     });
@@ -34,18 +31,31 @@ async function getTeamSavings(teamName: string): Promise<TeamSavings> {
   }
 }
 
-// ⬇️ 修正: Propsの型を正しく定義
-interface TeamPageProps {
-  params: { team: string };
-  searchParams?: { [key: string]: string | string[] | undefined };
+interface TeamPageProps {  // ❌ HistoryPageProps → ✅ TeamPageProps
+  params: Promise<{ team: string }>;
 }
 
-// ⬇️ 修正: { params } を { params: p } に変更
-export default async function TeamPage({ params }: TeamPageProps) {
-  const teamName = params.team; // ⬅️ 修正: params.team を p.team に変更
-  // getTeamSavingsの戻り値の型が確定したため、この変数も安全になります
-  const teamSavings = await getTeamSavings(teamName);
-
-  return <TeamClientPage teamName={teamName} teamSavings={teamSavings as TeamSavings} />;
+export default async function TeamPage({ params }: TeamPageProps) {  // ❌ HistoryPage → ✅ TeamPage
+  const { team } = await params;
+  
+  // ✅ getTeamSavings 関数を呼び出す
+  const teamSavings = await getTeamSavings(team);
+  
+  // これらは不要かもしれませんが、必要であれば残す
+  const savings = await prisma.savings.findMany({
+    where: { team },
+    orderBy: { timestamp: 'desc' }
+  });
+  
+  const matches = await prisma.matches.findMany({
+    where: { team },
+    orderBy: { match_date: 'desc' }
+  });
+  
+  const awards = await prisma.awards.findMany({
+    where: { team }
+  });
+  
+  // ✅ team を teamName として渡す
+  return <TeamClientPage teamName={team} teamSavings={teamSavings} />;
 }
-
