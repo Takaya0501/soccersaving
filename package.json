@@ -19,6 +19,7 @@
     "react-dom": "19.1.0"
   },
   "devDependencies": {
+    "@types/minimatch": "^5.1.2",
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20.19.21",
@@ -32,3 +33,4 @@
     "typescript": "^5.9.3"
   }
 }
+
