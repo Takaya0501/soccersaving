@@ -1,10 +1,15 @@
 // Vercel
 import prisma from '@/lib/prisma';
 import TeamClientPage from './TeamClientPage';
+import type { Metadata } from 'next';
 
 interface TeamSavings {
   // インデックスシグネチャ
   [competition: string]: { total: number }; 
+}
+
+export const metadata: Metadata = {
+  title: 'チームページ',  // → "チームページ | サッカー貯金アプリ" になる
 }
 
 // ✅ 戻り値の型を明示的に指定 (Promise<TeamSavings>)
