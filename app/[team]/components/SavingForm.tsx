@@ -232,7 +232,7 @@ export default function SavingForm({ teamName, setTeamSavings, teamSavings, seas
         <div className="mb-6">
           <label htmlFor="isMvp" className="flex items-center text-sm font-medium text-gray-700">
             <input type="checkbox" id="isMvp" name="isMvp" className="mr-2 h-4 w-4 text-blue-600 rounded" />
-            MVP獲得
+            MVP獲得/現地観戦
           </label>
         </div>
 
