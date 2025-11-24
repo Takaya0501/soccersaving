@@ -3,10 +3,11 @@ import prisma from '@/lib/prisma'; // シングルトンクライアント
 
 export async function POST(request: Request) {
   try {
-    const { team, competition, rank } = await request.json();
+    const { team, competition, rank, season } = await request.json();
 
     const normalizedTeam = team.toLowerCase();
     const normalizedCompetition = competition.toLowerCase();
+    const currentSeason = season || '25/26';
 
     // ✅ prefer-constエラーを解消するため、IIFEでawardAmountを計算
     const awardAmount = (() => {
@@ -40,9 +41,10 @@ export async function POST(request: Request) {
 
     const existingAward = await prisma.awards.findUnique({
       where: {
-        team_competition: {
+        team_competition_season: {
           team: normalizedTeam,
           competition: normalizedCompetition,
+          season: currentSeason,
         },
       },
     });
@@ -53,6 +55,7 @@ export async function POST(request: Request) {
 
     await prisma.awards.create({
       data: {
+        season: currentSeason,
         team: normalizedTeam,
         competition: normalizedCompetition,
         rank: rank,
