@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react'; // ✅ useEffectを追加
+import { useRouter } from 'next/navigation'; // ✅ useRouterを追加
 import SavingForm from './components/SavingForm';
 
 interface TeamSavings {
@@ -11,17 +12,25 @@ interface TeamSavings {
 interface TeamClientPageProps {
   teamName: string;
   teamSavings: TeamSavings;
+  currentSeason: string; 
 }
 
 const teamCompetitions: { [key: string]: string[] } = {
   'liverpool': ['premier league', 'fa cup', 'carabao cup', 'uefa champions league', 'fa community shield'],
   'dortmund': ['bundesliga', 'dfb-pokal', 'uefa champions league'],
-  'barcelona': ['la liga', 'copa del rey', 'uefa champions league', 'supercopa de españa']
+  'barcelona': ['la liga', 'copa del rey', 'uefa champions league', 'supercopa de españa'],
+  'gamba osaka': ['j1 league', 'emperors cup', 'j league cup']
 };
 
-export default function TeamClientPage({ teamName, teamSavings }: TeamClientPageProps) {
+export default function TeamClientPage({ teamName, teamSavings, currentSeason }: TeamClientPageProps) {
+  const router = useRouter(); // ✅ ルーターの初期化
   const [currentTeamSavings, setCurrentTeamSavings] = useState(teamSavings);
   
+  // ✅ サーバー側でデータ（teamSavings）が変わった時にStateを更新する処理
+  useEffect(() => {
+    setCurrentTeamSavings(teamSavings);
+  }, [teamSavings]);
+
   const totalTeamSavings = Object.values(currentTeamSavings).reduce((sum, comp) => sum + comp.total, 0);
 
   return (
@@ -30,10 +39,15 @@ export default function TeamClientPage({ teamName, teamSavings }: TeamClientPage
         <Link href={`/`} className="text-blue-500 hover:underline">
           &lt; チーム一覧に戻る
         </Link>
-        <Link href={`/${teamName}/history`} className="text-blue-500 hover:underline">
+        {/* 履歴ページにも season を引き継ぐ */}
+        <Link href={`/${teamName}/history?season=${currentSeason}`} className="text-blue-500 hover:underline">
           試合履歴 &gt;
         </Link>
       </div>
+
+      {/* ✅ タイトルとシーズン選択プルダウンを横並びに配置 */}
+      <h1 className="text-3xl font-bold mb-2 text-gray-700 capitalize">{teamName}</h1>
+      <p className="text-gray-500 mb-8 font-medium">Season: {currentSeason}</p>
 
       <h1 className="text-3xl font-bold mb-8 text-gray-700">{teamName} 貯金額</h1>
 
@@ -54,9 +68,8 @@ export default function TeamClientPage({ teamName, teamSavings }: TeamClientPage
             </div>
           ))}
         </div>
-      </div>
-      
-      <SavingForm teamName={teamName} setTeamSavings={setCurrentTeamSavings} teamSavings={currentTeamSavings} />
+    </div>
+      <SavingForm teamName={teamName} setTeamSavings={setCurrentTeamSavings} teamSavings={currentTeamSavings} season={currentSeason}/>
     </div>
   );
 }

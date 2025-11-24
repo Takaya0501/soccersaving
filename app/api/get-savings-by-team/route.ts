@@ -5,16 +5,20 @@ import prisma from '@/lib/prisma';
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const team = searchParams.get('team');
+  const season = searchParams.get('season'); // シーズンを受け取る
 
-  if (!team) {
-    return NextResponse.json({ message: 'チーム名が指定されていません。' }, { status: 400 });
+  if (!team || !season) { // シーズンも必須にする
+    return NextResponse.json({ message: 'チームとシーズンが必要です。' }, { status: 400 });
   }
 
   try {
     const allSavings = await prisma.savings.groupBy({
       by: ['competition'],
       _sum: { amount: true },
-      where: { team: team },
+      where: { 
+        team: team,
+        season: season // シーズンで絞り込み
+      },
     });
 
     const result: { [key: string]: { total: number } } = {};

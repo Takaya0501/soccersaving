@@ -10,6 +10,7 @@ interface SavingFormProps {
   teamName: string;
   setTeamSavings: React.Dispatch<React.SetStateAction<TeamSavings>>;
   teamSavings: TeamSavings;
+  season: string;
 }
 
 const teamCompetitions: { [key: string]: string[] } = {
@@ -33,7 +34,7 @@ const mainPlayers: { [key: string]: string } = {
   'barcelona': 'Fermin'
 };
 
-export default function SavingForm({ teamName, setTeamSavings, teamSavings }: SavingFormProps) {
+export default function SavingForm({ teamName, setTeamSavings, teamSavings, season }: SavingFormProps) {
   const [selectedCompetition, setSelectedCompetition] = useState('');
   const [selectedMatchName, setSelectedMatchName] = useState('');
   const [selectedMatchDate, setSelectedMatchDate] = useState<string | null>(null); // 試合日を保持する State
@@ -45,7 +46,7 @@ export default function SavingForm({ teamName, setTeamSavings, teamSavings }: Sa
   useEffect(() => {
     const fetchAllMatches = async () => {
       try {
-        const response = await fetch(`/api/get-matches`);
+        const response = await fetch(`/api/get-matches?season=${season}`);
         const data = await response.json();
         setAllMatches(data);
       } catch (error) {
@@ -53,7 +54,7 @@ export default function SavingForm({ teamName, setTeamSavings, teamSavings }: Sa
       }
     };
     fetchAllMatches();
-  }, []);
+  }, [season]); // seasonが変われば再取得
 
   useEffect(() => {
     if (selectedCompetition) {
@@ -108,6 +109,7 @@ export default function SavingForm({ teamName, setTeamSavings, teamSavings }: Sa
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          season,
           team,
           competition,
           matchName,
@@ -117,7 +119,7 @@ export default function SavingForm({ teamName, setTeamSavings, teamSavings }: Sa
           isFukudaCommentator,
           goals,
           assists,
-          isMvp,
+          isMvp,          
         }),
       });
 

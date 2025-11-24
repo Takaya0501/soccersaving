@@ -5,6 +5,7 @@ export async function POST(request: Request) {
   try {
     // ✅ デストラクチャリングされた全ての変数が下のロジックで使用されるため、警告解消
     const {
+      season,
       team,
       competition,
       matchName,
@@ -17,10 +18,17 @@ export async function POST(request: Request) {
       isMvp,
     } = await request.json();
 
+    // シーズンが指定されていない場合のデフォルト値
+    const currentSeason = season || '25/26';
+
     // Savings テーブルに追加するため、試合日を取得
-    const matchInfo = await prisma.matches.findUnique({
-      where: { match_name: matchName },
-      select: { match_date: true, is_final: true }, // is_final も一緒に取得
+    const matchInfo = await prisma.matches.findFirst({
+      where: { 
+        match_name: matchName,
+        team: team,
+        season: currentSeason,
+      },
+      select: { match_date: true, is_final: true },
     });
 
     // 試合情報が見つからない、または日付がない場合はエラーとするか、nullを許容するか検討
@@ -98,6 +106,7 @@ export async function POST(request: Request) {
 
     await prisma.savings.create({
       data: {
+        season: season, // 追加: シーズン情報
         team: team,
         competition: competition,
         match_name: matchName,

@@ -2,23 +2,29 @@
 import prisma from '@/lib/prisma';
 import TeamClientPage from './TeamClientPage';
 import type { Metadata } from 'next';
+// import { SEASONS, TEAM_CONFIG } from '@/lib/config';
+
 
 interface TeamSavings {
   // インデックスシグネチャ
   [competition: string]: { total: number }; 
 }
 
+
 export const metadata: Metadata = {
   title: 'チームページ',  // → "チームページ | サッカー貯金アプリ" になる
 }
 
 // ✅ 戻り値の型を明示的に指定 (Promise<TeamSavings>)
-async function getTeamSavings(teamName: string): Promise<TeamSavings> {
+async function getTeamSavings(teamName: string, season: string): Promise<TeamSavings> {
   try {
     const allSavings = await prisma.savings.groupBy({
       by: ['competition'],
       _sum: { amount: true },
-      where: { team: teamName },
+      where: { 
+        team: teamName,
+        season: season // ✅ 追加: シーズンでデータを絞り込む
+      },
     });
 
     // ✅ 変数 'result' に型 (TeamSavings) を明示的に指定
@@ -36,31 +42,26 @@ async function getTeamSavings(teamName: string): Promise<TeamSavings> {
   }
 }
 
-interface TeamPageProps {  // ❌ HistoryPageProps → ✅ TeamPageProps
+interface TeamPageProps {
   params: Promise<{ team: string }>;
+  searchParams: Promise<{ season?: string }>; // クエリパラメータを受け取る
 }
 
-export default async function TeamPage({ params }: TeamPageProps) {  // ❌ HistoryPage → ✅ TeamPage
+export default async function TeamPage({ params, searchParams }: TeamPageProps) {
   const { team } = await params;
-  
-  // ✅ getTeamSavings 関数を呼び出す
-  const teamSavings = await getTeamSavings(team);
-  
-  // これらは不要かもしれませんが、必要であれば残す
-  const savings = await prisma.savings.findMany({
-    where: { team },
-    orderBy: { timestamp: 'desc' }
-  });
-  
-  const matches = await prisma.matches.findMany({
-    where: { team },
-    orderBy: { match_date: 'desc' }
-  });
-  
-  const awards = await prisma.awards.findMany({
-    where: { team }
-  });
-  
-  // ✅ team を teamName として渡す
-  return <TeamClientPage teamName={team} teamSavings={teamSavings} />;
+  const { season } = await searchParams;
+
+  const teamDecoded = decodeURIComponent(team).toLowerCase();
+  // URLにシーズンがなければデフォルト(25/26)にする
+  const currentSeason = season || '25/26';
+
+  const teamSavings = await getTeamSavings(teamDecoded, currentSeason);
+
+  return (
+    <TeamClientPage 
+      teamName={teamDecoded} 
+      teamSavings={teamSavings} 
+      currentSeason={currentSeason} // ✅ クライアントへ渡す
+    />
+  );
 }

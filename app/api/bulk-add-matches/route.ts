@@ -11,6 +11,7 @@ interface MatchData {
   match_date?: string; // ⬅️ 修正: match_date を追加 (任意)
   is_overtime_or_pk?: boolean;
   is_final?: boolean;
+  season?: string;
 }
 
 // Prismaの単一操作の返り値の型を定義
@@ -27,7 +28,7 @@ export async function POST(request: Request) {
 
     // $transactionで実行するアクションを準備
     const transactionActions = matches.map((match) => {
-        const { team, competition, match_name, match_date, is_overtime_or_pk, is_final } = match; // match_date を追加
+        const { team, competition, match_name, match_date, is_overtime_or_pk, is_final, season } = match; // match_date を追加
 
         // 必須データの検証
         if (!team || !competition || !match_name) {
@@ -37,6 +38,7 @@ export async function POST(request: Request) {
         const matchNameLower = match_name.toLowerCase();
         const teamLower = team.toLowerCase();
         const competitionLower = competition.toLowerCase();
+        const currentSeason = season || '25/26'; // デフォルトシーズン
         
         // match_date の処理
         const matchDateObj = match_date ? new Date(match_date) : null;
@@ -45,8 +47,14 @@ export async function POST(request: Request) {
         }
 
         // Matchモデル（複数形）を使用
-        const upsertOperation = prisma.matches.upsert({ 
-          where: { match_name: matchNameLower }, // ✅ 修正: match_name
+       const upsertOperation = prisma.matches.upsert({ 
+          where: { 
+            match_name_season_team: {
+              match_name: matchNameLower,
+              season: currentSeason,
+              team: teamLower,
+            }
+          },
           update: {
             team: teamLower,
             competition: competitionLower,
@@ -55,6 +63,7 @@ export async function POST(request: Request) {
             is_final: (is_final ?? false) ? 1 : 0, // ✅ 修正: is_final
           },
           create: {
+            season: currentSeason,
             team: teamLower,
             competition: competitionLower,
             match_name: matchNameLower, // ✅ 修正: match_name

@@ -1,9 +1,15 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  // 修正: null の場合はデフォルト値 '25/26' を使う
+  const season = searchParams.get('season') || '25/26';
   try {
     const matches = await prisma.matches.findMany({
+      where: {
+        season: season, // これでエラーが解消されます
+      },
       orderBy: [
         { team: 'asc' },
         { competition: 'asc' },

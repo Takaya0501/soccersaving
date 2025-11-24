@@ -6,6 +6,7 @@ export async function GET(request: Request) {
   const team = searchParams.get('team');
   const competition = searchParams.get('competition');
   const matchName = searchParams.get('matchName');
+  const season = searchParams.get('season') || '25/26';
 
   if (!team || !competition || !matchName) {
     return NextResponse.json({ message: 'チーム、大会、試合名が指定されていません。' }, { status: 400 });
@@ -14,7 +15,11 @@ export async function GET(request: Request) {
   try {
     const matchDetails = await prisma.matches.findUnique({
       where: {
-        match_name: matchName, // ✅ 修正: match_name
+        match_name_season_team: {
+          match_name: matchName,
+          season: season,
+          team: team,
+        },
       },
 
       select: {

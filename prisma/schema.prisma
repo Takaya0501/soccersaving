@@ -8,34 +8,41 @@ datasource db {
 }
 
 model Savings {
-   id          Int      @id @default(autoincrement())
-   team        String
-   competition String
-   match_name  String
-   amount      Int
-   match_date  DateTime? // 試合日を追加 (任意)
-   timestamp   DateTime @default(now())
+  id          Int      @id @default(autoincrement())
+  season      String   @default("25/26") // 追加: "25/26" や "2025" が入る
+  team        String
+  competition String
+  match_name  String
+  amount      Int
+  match_date  DateTime?
+  timestamp   DateTime @default(now())
 
-   @@index([team])
-   @@index([competition])
- }
+  @@index([team])
+  @@index([competition])
+  @@index([season])
+}
 
- model Matches {
-   id                Int     @id @default(autoincrement())
-   team              String
-   competition       String
-   match_name        String  @unique
-   match_date        DateTime? // 試合日を追加 (任意)
-   is_overtime_or_pk Int     @default(0)
-   is_final          Int     @default(0)
- }
+model Matches {
+  id                Int     @id @default(autoincrement())
+  season            String  @default("25/26") // 追加
+  team              String
+  competition       String
+  match_name        String
+  match_date        DateTime?
+  is_overtime_or_pk Int     @default(0)
+  is_final          Int     @default(0)
 
- model Awards {
-   id          Int    @id @default(autoincrement())
-   team        String
-   competition String
-   rank        Int
-   amount      Int
+  // 同じ名前の試合でもシーズンやチームが違えば登録できるようにする
+  @@unique([match_name, season, team]) 
+}
 
-   @@unique([team, competition])
- }
+model Awards {
+  id          Int    @id @default(autoincrement())
+  season      String @default("25/26") // 追加
+  team        String
+  competition String
+  rank        Int
+  amount      Int
+
+  @@unique([team, competition, season])
+}
