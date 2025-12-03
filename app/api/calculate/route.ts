@@ -3,12 +3,12 @@ import prisma from '@/lib/prisma';
 
 export async function POST(request: Request) {
   try {
-    // ✅ デストラクチャリングされた全ての変数が下のロジックで使用されるため、警告解消
     const {
       season,
       team,
       competition,
       matchName,
+      matchDate, // ✅ 1. 追加: フロントエンドから日付を受け取る
       matchResult,
       isOvertimeOrPK,
       isStarter,
@@ -18,23 +18,9 @@ export async function POST(request: Request) {
       isMvp,
     } = await request.json();
 
-    // シーズンが指定されていない場合のデフォルト値
     const currentSeason = season || '25/26';
 
-    // Savings テーブルに追加するため、試合日を取得
-    const matchInfo = await prisma.matches.findFirst({
-      where: { 
-        match_name: matchName,
-        team: team,
-        season: currentSeason,
-      },
-      select: { match_date: true, is_final: true },
-    });
-
-    // 試合情報が見つからない、または日付がない場合はエラーとするか、nullを許容するか検討
-    // ここでは null を許容する
-    const matchDate = matchInfo?.match_date;
-
+    // 既存の重複チェック
     const existingMatch = await prisma.savings.findFirst({
       where: {
         team: team,
@@ -46,14 +32,21 @@ export async function POST(request: Request) {
     if (existingMatch) {
       return NextResponse.json({ message: 'この試合の記録は既に存在します。' }, { status: 409 });
     }
-    
-    // const matchDetails = await prisma.matches.findUnique({
-    //   where: {
-    //     match_name: matchName,
-    //   },
-    //   select: {
-    //   },
-    // });
+
+    // 試合情報の取得（is_final のチェックには必要）
+    // ※ ここで match_date を取得しても、Savingsの保存には使いません
+    const matchInfo = await prisma.matches.findFirst({
+      where: { 
+        match_name: matchName,
+        team: team,
+        season: currentSeason,
+      },
+      select: { is_final: true }, // match_date は必須ではない
+    });
+
+    // ✅ 2. 修正: フォームから送られてきた日付を優先して Date 型に変換
+    // フォームが空の場合は null にする
+    const savingMatchDate = matchDate ? new Date(matchDate) : null;
 
     let savingsAmount = 0;
     
@@ -71,7 +64,6 @@ export async function POST(request: Request) {
         break;
     }
 
-    // ✅ 全ての変数がここで使用される (警告解消)
     if (isOvertimeOrPK) {
       savingsAmount += 200;
     }
@@ -88,7 +80,7 @@ export async function POST(request: Request) {
       savingsAmount += 500;
     }
 
-    if (matchInfo && matchInfo.is_final === 1) { // 変更
+    if (matchInfo && matchInfo.is_final === 1) { 
       if (matchResult === 'win') {
         if (competition.includes('champions league') || competition.includes('europa league')) {
           savingsAmount += 10000;
@@ -106,12 +98,12 @@ export async function POST(request: Request) {
 
     await prisma.savings.create({
       data: {
-        season: season, // 追加: シーズン情報
+        season: currentSeason,
         team: team,
         competition: competition,
         match_name: matchName,
         amount: savingsAmount,
-        match_date: matchDate,
+        match_date: savingMatchDate, // ✅ 3. 修正: フォームの日付を使用
         timestamp: new Date().toISOString(),
       },
     });
