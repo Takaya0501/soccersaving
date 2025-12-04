@@ -48,6 +48,13 @@ export default function UnsavedMatchRow({ match }: { match: MatchProps }) {
     }
   };
 
+  const queryParams = new URLSearchParams({
+    season: match.season,
+    competition: match.competition,
+    matchName: match.match_name,
+    matchDate: date, // 現在入力されている日付を渡す
+  }).toString();
+
   return (
     <tr className="border-b border-gray-100 hover:bg-gray-50 transition">
       <td className="p-4 whitespace-nowrap">
@@ -78,8 +85,8 @@ export default function UnsavedMatchRow({ match }: { match: MatchProps }) {
       </td>
       <td className="p-4 whitespace-nowrap text-center">
         <Link
-          // 入力ページへ遷移（seasonも渡す）
-          href={`/${match.team}?season=${match.season}`}
+          // ★ 修正: クエリパラメータ付きのURLへ遷移
+          href={`/${match.team}?${queryParams}`}
           className="text-blue-600 hover:underline font-bold text-xs bg-blue-50 px-3 py-1 rounded-full border border-blue-200"
         >
           入力へ →

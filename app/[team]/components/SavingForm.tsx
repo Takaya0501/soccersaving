@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation'; // URLパラメータ取得用
 
 interface TeamSavings {
   [competition: string]: { total: number };
@@ -25,7 +26,7 @@ interface Match {
   team: string;
   competition: string;
   match_name: string;
-  match_date: string | null; // Date型またはnull
+  match_date: string | null;
   is_overtime_or_pk: number;
 }
 
@@ -36,16 +37,23 @@ const mainPlayers: { [key: string]: string } = {
 };
 
 export default function SavingForm({ teamName, setTeamSavings, teamSavings, season }: SavingFormProps) {
-  const [selectedCompetition, setSelectedCompetition] = useState('');
-  const [selectedMatchName, setSelectedMatchName] = useState('');
-  // 変更点1: 初期値を空文字にし、型をstringにする
-  const [selectedMatchDate, setSelectedMatchDate] = useState<string>(''); 
+  // URLパラメータから初期値を取得 (未記録一覧からの遷移用)
+  const searchParams = useSearchParams();
+  const initialCompetition = (searchParams.get('competition') || '').toLowerCase().trim();
+  const initialMatchName = (searchParams.get('matchName') || '').trim();
+  const initialMatchDate = searchParams.get('matchDate') || '';
+
+  const [selectedCompetition, setSelectedCompetition] = useState(initialCompetition);
+  const [selectedMatchName, setSelectedMatchName] = useState(initialMatchName);
+  const [selectedMatchDate, setSelectedMatchDate] = useState<string>(initialMatchDate);
+  
   const [isOvertimeOrPK, setIsOvertimeOrPK] = useState(false);
   const [allMatches, setAllMatches] = useState<Match[]>([]);
   const [filteredMatches, setFilteredMatches] = useState<Match[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [savedMatchNames, setSavedMatchNames] = useState<string[]>([]);
 
+  // 1. 全試合データの取得
   useEffect(() => {
     const fetchAllMatches = async () => {
       try {
@@ -59,13 +67,14 @@ export default function SavingForm({ teamName, setTeamSavings, teamSavings, seas
     fetchAllMatches();
   }, [season]);
 
+  // 2. 記録済み試合データの取得
   useEffect(() => {
     const fetchSavedMatches = async () => {
       try {
         const response = await fetch(`/api/get-saved-matches?team=${teamName}&season=${season}`, { cache: 'no-store' });
         if (response.ok) {
           const data = await response.json();
-          console.log("【デバッグ】取得した保存済み試合:", data); // ★ 確認用ログ
+          // console.log("【デバッグ】取得した保存済み試合:", data);
           setSavedMatchNames(data);
         }
       } catch (error) {
@@ -75,19 +84,20 @@ export default function SavingForm({ teamName, setTeamSavings, teamSavings, seas
     fetchSavedMatches();
   }, [teamName, season, teamSavings]);
 
+  // 3. ★ リストのフィルタリング処理 (ここを修正・統合)
+  // 重複していたuseEffectを削除し、大文字小文字を無視する比較ロジックを追加
   useEffect(() => {
     if (selectedCompetition) {
       const filtered = allMatches.filter(match => {
-        // チームと大会の一致確認
         const isTeamMatch = match.team.toLowerCase() === teamName.toLowerCase();
         const isCompMatch = match.competition.toLowerCase() === selectedCompetition.toLowerCase();
         
-        // ★ 保存済みかどうかのチェック (大文字小文字を無視して比較)
+        // 保存済みリストに含まれていないかチェック (大文字小文字・前後の空白を無視して比較)
         const isAlreadySaved = savedMatchNames.some(savedName => 
           savedName.toLowerCase().trim() === match.match_name.toLowerCase().trim()
         );
 
-        return isTeamMatch && isCompMatch && !isAlreadySaved; // 保存済みでないものだけ残す
+        return isTeamMatch && isCompMatch && !isAlreadySaved;
       });
       setFilteredMatches(filtered);
     } else {
@@ -95,19 +105,19 @@ export default function SavingForm({ teamName, setTeamSavings, teamSavings, seas
     }
   }, [selectedCompetition, teamName, allMatches, savedMatchNames]);
 
+  // 4. 試合詳細情報の取得 (URLパラメータ等で試合名が決まっている場合)
   useEffect(() => {
     const fetchMatchDetails = async () => {
       if (!selectedMatchName || !selectedCompetition) {
         setIsOvertimeOrPK(false);
-        setSelectedMatchDate(''); // リセット
+        // パラメータで指定がない場合のみリセット
+        if (!initialMatchDate) setSelectedMatchDate('');
         return;
       }
       try {
-        // seasonもクエリに含めるのが安全です
         const response = await fetch(`/api/get-match-details?team=${teamName}&competition=${selectedCompetition}&matchName=${selectedMatchName}&season=${season}`);
         const data: Match = await response.json();
         
-        // 変更点2: 取得した日付を YYYY-MM-DD 形式に変換
         if (data.match_date) {
           const date = new Date(data.match_date);
           const yyyy = date.getFullYear();
@@ -115,17 +125,18 @@ export default function SavingForm({ teamName, setTeamSavings, teamSavings, seas
           const dd = String(date.getDate()).padStart(2, '0');
           setSelectedMatchDate(`${yyyy}-${mm}-${dd}`);
         } else {
-          setSelectedMatchDate('');
+          // DBに日付がなく、パラメータで指定もなければクリア
+          if (!initialMatchDate) setSelectedMatchDate('');
         }
 
         setIsOvertimeOrPK(data.is_overtime_or_pk === 1);
       } catch (error) {
-        console.error('試合詳細の取得に失敗しました:', error);
-        setIsOvertimeOrPK(false);
+        // エラー時はリセットしない（編集中かもしれないため）
+        // console.error('試合詳細の取得に失敗しました:', error);
       }
     };
     fetchMatchDetails();
-  }, [selectedMatchName, teamName, selectedCompetition, season]); // 依存配列にseasonを追加
+  }, [selectedMatchName, teamName, selectedCompetition, season, initialMatchDate]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -141,8 +152,6 @@ export default function SavingForm({ teamName, setTeamSavings, teamSavings, seas
     const goals = parseInt(form.goals.value, 10);
     const assists = parseInt(form.assists.value, 10);
     const isMvp = form.isMvp.checked;
-    
-    // 変更点4: フォームから日付の値を取得
     const matchDate = form.matchDate.value;
 
     try {
@@ -156,7 +165,7 @@ export default function SavingForm({ teamName, setTeamSavings, teamSavings, seas
           team,
           competition,
           matchName,
-          matchDate, // APIへ日付を送信
+          matchDate,
           matchResult,
           isOvertimeOrPK,
           isStarter,
@@ -179,14 +188,16 @@ export default function SavingForm({ teamName, setTeamSavings, teamSavings, seas
           return newTeamState;
         });
 
-        // ★★★ 追加: 保存に成功したら、この試合名を「保存済みリスト」に即座に追加する ★★★
+        // 保存成功時、リストから即座に消すためにStateへ追加
         setSavedMatchNames(prev => [...prev, matchName]);
 
         alert(`今回の貯金額は ${addedAmount}円 です！`);
         form.reset();
-        // リセット時にstateも初期化
+        
+        // Stateの初期化
         setSelectedMatchDate('');
         setSelectedMatchName('');
+        // 大会選択はそのまま残す（連続入力しやすくするため）
       } else {
         alert(`エラーが発生しました: ${data.message}`);
       }
@@ -210,6 +221,7 @@ export default function SavingForm({ teamName, setTeamSavings, teamSavings, seas
           <label htmlFor="competition" className="block text-sm font-medium text-gray-700 mb-2">大会:</label>
           <select id="competition" name="competition" required 
                   className="w-full p-3 border border-gray-300 rounded-md" 
+                  value={selectedCompetition}
                   onChange={(e) => {
                     setSelectedCompetition(e.target.value);
                     setSelectedMatchName('');
@@ -232,7 +244,6 @@ export default function SavingForm({ teamName, setTeamSavings, teamSavings, seas
           </select>
         </div>
 
-        {/* 変更点3: 日付を入力・編集可能なフィールドに変更 */}
         <div className="mb-6">
           <label htmlFor="matchDate" className="block text-sm font-medium text-gray-700 mb-2">試合日:</label>
           <input
