@@ -44,12 +44,12 @@ export default function SavingForm({ teamName, setTeamSavings, teamSavings, seas
   const [allMatches, setAllMatches] = useState<Match[]>([]);
   const [filteredMatches, setFilteredMatches] = useState<Match[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+  const [savedMatchNames, setSavedMatchNames] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchAllMatches = async () => {
       try {
-        const response = await fetch(`/api/get-matches?season=${season}`);
+        const response = await fetch(`/api/get-matches?season=${season}`, { cache: 'no-store' });
         const data = await response.json();
         setAllMatches(data);
       } catch (error) {
@@ -57,18 +57,43 @@ export default function SavingForm({ teamName, setTeamSavings, teamSavings, seas
       }
     };
     fetchAllMatches();
-  }, [season]); 
+  }, [season]);
+
+  useEffect(() => {
+    const fetchSavedMatches = async () => {
+      try {
+        const response = await fetch(`/api/get-saved-matches?team=${teamName}&season=${season}`, { cache: 'no-store' });
+        if (response.ok) {
+          const data = await response.json();
+          console.log("【デバッグ】取得した保存済み試合:", data); // ★ 確認用ログ
+          setSavedMatchNames(data);
+        }
+      } catch (error) {
+        console.error('保存済み試合の取得に失敗しました:', error);
+      }
+    };
+    fetchSavedMatches();
+  }, [teamName, season, teamSavings]);
 
   useEffect(() => {
     if (selectedCompetition) {
-      const filtered = allMatches.filter(
-        match => match.team.toLowerCase() === teamName.toLowerCase() && match.competition.toLowerCase() === selectedCompetition.toLowerCase()
-      );
+      const filtered = allMatches.filter(match => {
+        // チームと大会の一致確認
+        const isTeamMatch = match.team.toLowerCase() === teamName.toLowerCase();
+        const isCompMatch = match.competition.toLowerCase() === selectedCompetition.toLowerCase();
+        
+        // ★ 保存済みかどうかのチェック (大文字小文字を無視して比較)
+        const isAlreadySaved = savedMatchNames.some(savedName => 
+          savedName.toLowerCase().trim() === match.match_name.toLowerCase().trim()
+        );
+
+        return isTeamMatch && isCompMatch && !isAlreadySaved; // 保存済みでないものだけ残す
+      });
       setFilteredMatches(filtered);
     } else {
       setFilteredMatches([]);
     }
-  }, [selectedCompetition, teamName, allMatches]);
+  }, [selectedCompetition, teamName, allMatches, savedMatchNames]);
 
   useEffect(() => {
     const fetchMatchDetails = async () => {
@@ -153,6 +178,9 @@ export default function SavingForm({ teamName, setTeamSavings, teamSavings, seas
           newTeamState[competition] = { total: previousTotal + addedAmount };
           return newTeamState;
         });
+
+        // ★★★ 追加: 保存に成功したら、この試合名を「保存済みリスト」に即座に追加する ★★★
+        setSavedMatchNames(prev => [...prev, matchName]);
 
         alert(`今回の貯金額は ${addedAmount}円 です！`);
         form.reset();

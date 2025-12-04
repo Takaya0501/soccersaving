@@ -54,6 +54,13 @@ export default function HomePage() {
       <div className="bg-gray-200 p-6 rounded-lg w-full max-w-xl">
         <h2 className="text-lg font-semibold mb-4 text-gray-600">管理メニュー</h2>
         <div className="flex flex-col space-y-3 text-sm">
+          <Link href="/saved-matches" className="text-gray-700 hover:text-blue-600 hover:underline flex items-center font-bold">
+              <span className="mr-2">📋</span> 全記録を見る (一覧)
+            </Link>
+            <Link href="/unsaved-matches" className="text-gray-700 hover:text-red-600 hover:underline flex items-center font-bold">
+              <span className="mr-2">⚠️</span> 未記録の試合を見る
+            </Link>
+            <div className="border-t border-gray-300 my-2"></div> {/* 区切り線 */}
             <Link href="/add-match" className="text-gray-700 hover:text-blue-600 hover:underline flex items-center">
               <span className="mr-2">➕</span> 個別の試合を追加
             </Link>
