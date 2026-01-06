@@ -13,7 +13,7 @@
     "@prisma/client": "^6.18.0",
     "@types/minimatch": "^6.0.0",
     "axios": "^1.12.2",
-    "next": "15.5.4",
+    "next": "15.5.9",
     "pg": "^8.16.3",
     "react": "19.1.0",
     "react-dom": "19.1.0"
@@ -33,4 +33,3 @@
     "typescript": "^5.9.3"
   }
 }
-
