@@ -33,7 +33,8 @@ interface Match {
 const mainPlayers: { [key: string]: string } = {
   'liverpool': 'Bradley',
   'dortmund': 'Brandt',
-  'barcelona': 'Fermin'
+  'barcelona': 'Fermin',
+  'gamba osaka': 'aaa'
 };
 
 export default function SavingForm({ teamName, setTeamSavings, teamSavings, season }: SavingFormProps) {

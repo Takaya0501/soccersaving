@@ -3,11 +3,12 @@
 import { useState } from 'react';
 import Link from 'next/link';
 
-const teams = ['Liverpool', 'Dortmund', 'Barcelona'];
+const teams = ['Liverpool', 'Dortmund', 'Barcelona', 'gamba osaka'];
 const teamCompetitions: { [key: string]: string[] } = {
   'liverpool': ['premier league', 'fa cup', 'carabao cup', 'uefa champions league', 'fa community shield'],
   'dortmund': ['bundesliga', 'dfb-pokal', 'uefa champions league'],
-  'barcelona': ['la liga', 'copa del rey', 'uefa champions league', 'supercopa de españa']
+  'barcelona': ['la liga', 'copa del rey', 'uefa champions league', 'supercopa de españa'],
+  'gamba osaka': ['j1 league', 'emperors cup', 'j league cup']
 };
 
 export default function AddMatchPage() {
