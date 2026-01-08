@@ -3,42 +3,61 @@ import prisma from '@/lib/prisma';
 
 export async function POST(request: Request) {
   try {
-    const { team, competition, matchName, matchDate, isOvertimeOrPK, isFinal } = await request.json(); // matchDate を追加
+    const body = await request.json();
+    const { team, competition, matchName, matchDate, isFinal, season } = body;
 
+    // バリデーション
     if (!team || !competition || !matchName) {
-      return NextResponse.json({ message: 'チーム、大会、試合名を指定してください。' }, { status: 400 });
+      return NextResponse.json(
+        { message: 'チーム、大会、試合名は必須です。' },
+        { status: 400 }
+      );
     }
 
-    const normalizedMatchName = matchName.toLowerCase();
-    const normalizedTeam = team.toLowerCase();
-    const normalizedCompetition = competition.toLowerCase();
+    const currentSeason = season || '25/26';
 
-    try {
-      // ✅ 修正: prisma.matches (複数形)を使用
-      const newMatch = await prisma.matches.create({ 
-        data: {
-          team: normalizedTeam,
-          competition: normalizedCompetition,
-          match_name: normalizedMatchName, // ✅ 修正: match_name
-          match_date: matchDate, // matchDate を追加
-          is_overtime_or_pk: isOvertimeOrPK ? 1 : 0, // ✅ 修正: is_overtime_or_pk
-          is_final: isFinal ? 1 : 0, // ✅ 修正: is_final
-        },
-      });
+    // ★修正ポイント: findUnique ではなく findFirst を使うか、複合キーで検索する
+    // 旧: where: { match_name: matchName } -> これはエラーになる
+    // 新: チーム・シーズン・試合名で重複チェック
+    const existingMatch = await prisma.matches.findFirst({
+      where: {
+        team: team,
+        season: currentSeason,
+        match_name: matchName,
+      },
+    });
 
-      return NextResponse.json({
-        message: `試合 "${matchName}" が追加されました。`,
-        match: newMatch,
-      });
-    } catch (error) { // ✅ 修正: error: any を削除
-      if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
-        return NextResponse.json({ message: 'この試合名は既に存在します。' }, { status: 409 });
-      }
-      console.error('試合の追加中にPrismaエラー:', error);
-      return NextResponse.json({ message: '試合の追加に失敗しました。' }, { status: 500 });
+    if (existingMatch) {
+      return NextResponse.json(
+        { message: 'この試合は既に追加されています。' },
+        { status: 409 }
+      );
     }
+
+    // 日付の変換
+    const dateObj = matchDate ? new Date(matchDate) : null;
+
+    // データの作成
+    const newMatch = await prisma.matches.create({
+      data: {
+        season: currentSeason,
+        team: team,
+        competition: competition,
+        match_name: matchName,
+        match_date: dateObj,
+        is_final: isFinal ? 1 : 0, // booleanできた場合は数値に変換
+      },
+    });
+
+    return NextResponse.json({
+      message: '試合を追加しました',
+      match: newMatch,
+    });
   } catch (error) {
-    console.error('試合の追加中にエラー:', error);
-    return NextResponse.json({ message: 'サーバーエラーが発生しました。' }, { status: 500 });
+    console.error('試合追加エラー:', error);
+    return NextResponse.json(
+      { message: 'サーバーエラーが発生しました。' },
+      { status: 500 }
+    );
   }
 }
