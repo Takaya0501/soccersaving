@@ -19,7 +19,7 @@ const teamCompetitions: { [key: string]: string[] } = {
   'liverpool': ['premier league', 'fa cup', 'carabao cup', 'uefa champions league', 'fa community shield'],
   'dortmund': ['bundesliga', 'dfb-pokal', 'uefa champions league'],
   'barcelona': ['la liga', 'copa del rey', 'uefa champions league', 'supercopa de españa'],
-  'gamba osaka': ['j1 league', 'emperors cup', 'j league cup']
+  'gamba osaka': ['j1 league', 'emperors cup', 'j league cup', 'asia champions league 2']
 };
 
 export default function TeamClientPage({ teamName, teamSavings, currentSeason }: TeamClientPageProps) {

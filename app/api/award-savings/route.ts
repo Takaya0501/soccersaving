@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     // ✅ prefer-constエラーを解消するため、IIFEでawardAmountを計算
     const awardAmount = (() => {
         let amount = 0;
-        if (normalizedCompetition.includes('champions league') || normalizedCompetition.includes('europa league')) {
+        if (normalizedCompetition.includes('champions league') || normalizedCompetition.includes('europa league') || normalizedCompetition.includes('asia champions league 2')) {
             if (rank === 1) {
                 amount = 10000;
             } else if (rank === 2) {

@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { TEAMS } from '@/lib/config'; // ✅ 追加: 全体設定をインポート
 
-const teams = ['Liverpool', 'Dortmund', 'Barcelona', 'gamba osaka'];
+// 大会リストの設定（キーはTEAMSのidと一致させる）
 const teamCompetitions: { [key: string]: string[] } = {
   'liverpool': ['premier league', 'fa cup', 'carabao cup', 'uefa champions league', 'fa community shield'],
   'dortmund': ['bundesliga', 'dfb-pokal', 'uefa champions league'],
@@ -13,19 +14,24 @@ const teamCompetitions: { [key: string]: string[] } = {
 
 export default function AddMatchPage() {
   const [status, setStatus] = useState('');
-  const [selectedTeam, setSelectedTeam] = useState('');
+  const [selectedTeamId, setSelectedTeamId] = useState('');
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setStatus('送信中...');
 
     const form = e.currentTarget;
-    const team = form.team.value;
+    // form.team.value は selectedTeamId と同じ
+    const teamId = form.team.value; 
     const competition = form.competition.value;
     const matchName = form.matchName.value;
-    const matchDate = form.matchDate.value; // matchDate を取得
+    const matchDate = form.matchDate.value;
     const isOvertimeOrPK = form.isOvertimeOrPK.checked;
     const isFinal = form.isFinal.checked;
+
+    // ✅ 追加: 選択されたチームの現在のシーズンを取得
+    const selectedTeamConfig = TEAMS.find(t => t.id === teamId);
+    const season = selectedTeamConfig ? selectedTeamConfig.currentSeason : '25/26';
 
     try {
       const response = await fetch('/api/add-match', {
@@ -33,7 +39,15 @@ export default function AddMatchPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ team, competition, matchName, matchDate, isOvertimeOrPK, isFinal }), // matchDate を追加
+        body: JSON.stringify({ 
+          team: teamId, 
+          competition, 
+          matchName, 
+          matchDate, 
+          isOvertimeOrPK, 
+          isFinal,
+          season // ✅ 追加: 正しいシーズンを送る
+        }),
       });
 
       const data = await response.json();
@@ -41,7 +55,7 @@ export default function AddMatchPage() {
       if (response.ok) {
         setStatus(`成功: ${data.message}`);
         form.reset();
-        setSelectedTeam('');
+        setSelectedTeamId('');
       } else {
         setStatus(`エラー: ${data.message}`);
       }
@@ -65,24 +79,40 @@ export default function AddMatchPage() {
         <form onSubmit={handleSubmit}>
           <div className="mb-6">
             <label htmlFor="team" className="block text-sm font-medium text-gray-700 mb-2">チーム:</label>
-            <select id="team" name="team" required className="w-full p-3 border border-gray-300 rounded-md" onChange={(e) => setSelectedTeam(e.target.value)}>
+            <select 
+              id="team" 
+              name="team" 
+              required 
+              className="w-full p-3 border border-gray-300 rounded-md" 
+              value={selectedTeamId}
+              onChange={(e) => setSelectedTeamId(e.target.value)}
+            >
               <option value="">選択してください</option>
-              {teams.map(t => <option key={t} value={t.toLowerCase()}>{t}</option>)}
+              {/* ✅ 修正: config.ts の TEAMS を使用 */}
+              {TEAMS.map(team => (
+                <option key={team.id} value={team.id}>{team.name}</option>
+              ))}
             </select>
           </div>
 
           <div className="mb-6">
             <label htmlFor="competition" className="block text-sm font-medium text-gray-700 mb-2">大会:</label>
-            <select id="competition" name="competition" required className="w-full p-3 border border-gray-300 rounded-md" disabled={!selectedTeam}>
+            <select 
+              id="competition" 
+              name="competition" 
+              required 
+              className="w-full p-3 border border-gray-300 rounded-md" 
+              disabled={!selectedTeamId}
+            >
               <option value="">選択してください</option>
-              {selectedTeam && teamCompetitions[selectedTeam] && teamCompetitions[selectedTeam].map(c => (
+              {selectedTeamId && teamCompetitions[selectedTeamId] && teamCompetitions[selectedTeamId].map(c => (
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>
           </div>
 
           <div className="mb-6">
-          <label htmlFor="matchDate" className="block text-sm font-medium text-gray-700 mb-2">試合日:</label>
+            <label htmlFor="matchDate" className="block text-sm font-medium text-gray-700 mb-2">試合日:</label>
             <input type="date" id="matchDate" name="matchDate" className="w-full p-3 border border-gray-300 rounded-md" />
           </div>
 

@@ -2,34 +2,31 @@ import Link from 'next/link';
 import prisma from '@/lib/prisma';
 import { PAST_SEASONS } from '@/lib/config';
 
-// サーバーコンポーネントとしてデータ取得
 export default async function SavedMatchesPage({
   searchParams,
 }: {
   searchParams: Promise<{ season?: string }>;
 }) {
   const { season } = await searchParams;
+  // デフォルトは '25/26' ですが、リンクから 2026 が指定されればそれが使われます
   const currentSeason = season || '25/26';
 
-  // 該当シーズンの全データを取得（日付の新しい順）
   const savings = await prisma.savings.findMany({
     where: {
       season: currentSeason,
     },
     orderBy: {
-      // match_date があればそれでソート、なければ登録日時でソート
       match_date: 'desc',
     },
   });
 
-  // 日付がないデータ用のソート（match_dateがnullの場合timestampを見る）
+  // 日付ソート
   savings.sort((a, b) => {
     const dateA = a.match_date ? new Date(a.match_date).getTime() : new Date(a.timestamp).getTime();
     const dateB = b.match_date ? new Date(b.match_date).getTime() : new Date(b.timestamp).getTime();
     return dateB - dateA;
   });
 
-  // 合計金額の計算
   const totalAmount = savings.reduce((sum, item) => sum + item.amount, 0);
 
   return (
@@ -41,6 +38,14 @@ export default async function SavedMatchesPage({
         
         {/* シーズン切り替えリンク */}
         <div className="flex space-x-2 text-sm">
+           {/* ✅ 追加: 2026シーズン (ガンバ大阪用) */}
+           <Link 
+            href="/saved-matches?season=2026" 
+            className={`px-3 py-1 rounded ${currentSeason === '2026' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+          >
+            2026
+          </Link>
+
           <Link 
             href="/saved-matches?season=25/26" 
             className={`px-3 py-1 rounded ${currentSeason === '25/26' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
@@ -67,7 +72,6 @@ export default async function SavedMatchesPage({
 
       <h1 className="text-3xl font-bold mb-4 text-gray-700">記録済み試合一覧 ({currentSeason})</h1>
 
-      {/* 合計金額表示 */}
       <div className="bg-white p-6 rounded-lg shadow-md mb-8 w-full max-w-4xl flex justify-between items-center">
         <span className="text-xl font-bold text-gray-600">シーズン合計:</span>
         <span className="text-4xl font-bold text-blue-600">{totalAmount.toLocaleString()}円</span>
@@ -99,7 +103,6 @@ export default async function SavedMatchesPage({
                         : <span className="text-gray-400 text-xs">未設定</span>}
                     </td>
                     <td className="p-4 whitespace-nowrap font-bold capitalize">
-                      {/* 日本語チーム名への変換ロジックがあればここで適用 */}
                       {item.team === 'gamba osaka' ? 'Gamba Osaka' : item.team}
                     </td>
                     <td className="p-4 whitespace-nowrap capitalize">

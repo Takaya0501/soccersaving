@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import prisma from '@/lib/prisma';
 import { PAST_SEASONS } from '@/lib/config';
-// ★ 追加: 行コンポーネントをインポート
 import UnsavedMatchRow from './UnsavedMatchRow';
 
 export default async function UnsavedMatchesPage({
@@ -12,24 +11,20 @@ export default async function UnsavedMatchesPage({
   const { season } = await searchParams;
   const currentSeason = season || '25/26';
 
-  // 1. 全試合を取得 (変更なし)
   const allMatches = await prisma.matches.findMany({
     where: { season: currentSeason },
     orderBy: { match_date: 'asc' },
   });
 
-  // 2. 記録済みデータを取得 (変更なし)
   const savedMatches = await prisma.savings.findMany({
     where: { season: currentSeason },
     select: { team: true, match_name: true },
   });
 
-  // 3. 判定用セット (変更なし)
   const savedKeys = new Set(
     savedMatches.map((s) => `${s.team.toLowerCase()}_${s.match_name.toLowerCase().trim()}`)
   );
 
-  // 4. 未記録フィルタリング (変更なし)
   const unsavedMatches = allMatches.filter((match) => {
     const key = `${match.team.toLowerCase()}_${match.match_name.toLowerCase().trim()}`;
     return !savedKeys.has(key);
@@ -37,12 +32,14 @@ export default async function UnsavedMatchesPage({
 
   return (
     <div className="flex flex-col items-center min-h-screen p-8 bg-gray-100 text-gray-800">
-      {/* ... (ヘッダーやタイトル部分はそのまま) ... */}
       <div className="w-full max-w-4xl mb-6 flex justify-between items-center">
         <Link href="/" className="text-blue-500 hover:underline">
           &lt; トップに戻る
         </Link>
         <div className="flex space-x-2 text-sm">
+          {/* ✅ 追加: 2026シーズン */}
+          <Link href="/unsaved-matches?season=2026" className={`px-3 py-1 rounded ${currentSeason === '2026' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}>2026</Link>
+          
           <Link href="/unsaved-matches?season=25/26" className={`px-3 py-1 rounded ${currentSeason === '25/26' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}>25/26</Link>
           <Link href="/unsaved-matches?season=2025" className={`px-3 py-1 rounded ${currentSeason === '2025' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}>2025</Link>
           {PAST_SEASONS.map((s) => (
@@ -52,6 +49,7 @@ export default async function UnsavedMatchesPage({
       </div>
 
       <h1 className="text-3xl font-bold mb-4 text-gray-700">未記録の試合 ({currentSeason})</h1>
+      {/* ... (以下省略、変更なし) ... */}
       <p className="text-gray-500 mb-8">
         日付を変更すると自動保存されます。
         <br />
@@ -76,13 +74,11 @@ export default async function UnsavedMatchesPage({
                 </tr>
               </thead>
               <tbody className="text-gray-600 text-sm">
-                {/* ★ 修正: 行コンポーネントを使用 */}
                 {unsavedMatches.map((match) => (
                   <UnsavedMatchRow 
                     key={match.id} 
                     match={{
                       ...match,
-                      // Dateオブジェクトを文字列に変換して渡す (warning対策)
                       match_date: match.match_date ? match.match_date.toISOString() : null
                     }} 
                   />
