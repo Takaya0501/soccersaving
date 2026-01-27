@@ -36,7 +36,7 @@ const mainPlayers: { [key: string]: string } = {
   'liverpool': 'Bradley',
   'dortmund': 'Brandt',
   'barcelona': 'Fermin',
-  'gamba osaka': 'aaa'
+  'gamba osaka': 'Gin'
 };
 
 export default function SavingForm({ teamName, setTeamSavings, teamSavings, season }: SavingFormProps) {
