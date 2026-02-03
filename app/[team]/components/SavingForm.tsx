@@ -153,7 +153,6 @@ export default function SavingForm({ teamName, setTeamSavings, teamSavings, seas
     // ★ 修正: 2つのチェックボックスを個別に取得
     const isMvp = form.isMvp.checked;
     const isOnSite = form.isOnSite.checked;
-    const fukuda = form.isFukudaCommentator.checked;
 
     const matchDate = form.matchDate.value;
 
@@ -318,13 +317,6 @@ export default function SavingForm({ teamName, setTeamSavings, teamSavings, seas
             現地観戦
           </label>
         </div>
-         <div className="mb-6">
-          <label htmlFor="isFukudaCommentator" className="flex items-center text-sm font-medium text-gray-700">
-            <input type="checkbox" id="isFukudaCommentator" name="isFukudaCommentator" className="mr-2 h-4 w-4 text-blue-600 rounded" />
-            解説福田
-          </label>
-        </div>
-
         <button type="submit" className="w-full py-3 px-4 bg-blue-600 text-white font-bold rounded-md hover:bg-blue-700 transition duration-300" disabled={isSubmitting}>
           {isSubmitting ? '記録中...' : '貯金を計算'}
         </button>

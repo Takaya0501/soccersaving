@@ -50,10 +50,6 @@ export async function POST(request: Request) {
     if (isOnSite) {
       addedAmount += 500; // 現地観戦の金額（必要に応じて変更してください）
     }
-    if (isFukuda) {
-      addedAmount += 500; // 解説福田の金額（必要に応じて変更してください）
-    }
-
     // データベースに保存
     // (Savingsテーブルには合計金額のみ保存される仕様です)
     const matchDateObj = matchDate ? new Date(matchDate) : null;
