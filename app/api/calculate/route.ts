@@ -30,7 +30,8 @@ export async function POST(request: Request) {
 
     // 1. 試合結果による金額 (例: 勝ち=500, 引き分け=100)
     if (matchResult === 'win') addedAmount += 500;
-    else if (matchResult === 'draw') addedAmount += 100;
+    else if (matchResult === 'draw') addedAmount += 200;
+    else if (matchResult === 'loss') addedAmount += 100;
     
     // 延長・PK戦だった場合 (例: +500)
     if (isOvertimeOrPK) addedAmount += 100;
