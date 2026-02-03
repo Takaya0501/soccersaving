@@ -19,7 +19,7 @@ const teamCompetitions: { [key: string]: string[] } = {
   'liverpool': ['premier league', 'fa cup', 'carabao cup', 'uefa champions league', 'fa community shield'],
   'dortmund': ['bundesliga', 'dfb-pokal', 'uefa champions league'],
   'barcelona': ['la liga', 'copa del rey', 'uefa champions league', 'supercopa de españa'],
-  'gamba osaka': ['j1 league', 'emperors cup', 'j league cup', 'asia champions league 2']
+  'gamba-osaka': ['j1 league', 'emperors cup', 'j league cup']
 };
 
 interface Match {
@@ -36,11 +36,10 @@ const mainPlayers: { [key: string]: string } = {
   'liverpool': 'Bradley',
   'dortmund': 'Brandt',
   'barcelona': 'Fermin',
-  'gamba osaka': 'Gin'
+  'gamba-osaka': 'Gin'
 };
 
 export default function SavingForm({ teamName, setTeamSavings, teamSavings, season }: SavingFormProps) {
-  // URLパラメータから初期値を取得 (未記録一覧からの遷移用)
   const searchParams = useSearchParams();
   const initialCompetition = (searchParams.get('competition') || '').toLowerCase().trim();
   const initialMatchName = (searchParams.get('matchName') || '').trim();
@@ -49,8 +48,6 @@ export default function SavingForm({ teamName, setTeamSavings, teamSavings, seas
   const [selectedCompetition, setSelectedCompetition] = useState(initialCompetition);
   const [selectedMatchName, setSelectedMatchName] = useState(initialMatchName);
   const [selectedMatchDate, setSelectedMatchDate] = useState<string>(initialMatchDate);
-  
-  // ★ 表示制御用のフラグ（延長・PKの可能性がある試合かどうか）
   const [canHaveOvertime, setCanHaveOvertime] = useState(false);
 
   const [allMatches, setAllMatches] = useState<Match[]>([]);
@@ -95,7 +92,6 @@ export default function SavingForm({ teamName, setTeamSavings, teamSavings, seas
         const isTeamMatch = match.team.toLowerCase() === teamName.toLowerCase();
         const isCompMatch = match.competition.toLowerCase() === selectedCompetition.toLowerCase();
         
-        // 保存済みリストに含まれていないかチェック (大文字小文字・前後の空白を無視して比較)
         const isAlreadySaved = savedMatchNames.some(savedName => 
           savedName.toLowerCase().trim() === match.match_name.toLowerCase().trim()
         );
@@ -108,12 +104,11 @@ export default function SavingForm({ teamName, setTeamSavings, teamSavings, seas
     }
   }, [selectedCompetition, teamName, allMatches, savedMatchNames]);
 
-  // 4. 試合詳細情報の取得 (URLパラメータ等で試合名が決まっている場合)
+  // 4. 試合詳細情報の取得
   useEffect(() => {
     const fetchMatchDetails = async () => {
       if (!selectedMatchName || !selectedCompetition) {
-        setCanHaveOvertime(false); // リセット
-        // パラメータで指定がない場合のみ日付もリセット
+        setCanHaveOvertime(false);
         if (!initialMatchDate) setSelectedMatchDate('');
         return;
       }
@@ -121,7 +116,6 @@ export default function SavingForm({ teamName, setTeamSavings, teamSavings, seas
         const response = await fetch(`/api/get-match-details?team=${teamName}&competition=${selectedCompetition}&matchName=${selectedMatchName}&season=${season}`);
         const data: Match = await response.json();
         
-        // 日付のセット
         if (data.match_date) {
           const date = new Date(data.match_date);
           const yyyy = date.getFullYear();
@@ -129,15 +123,13 @@ export default function SavingForm({ teamName, setTeamSavings, teamSavings, seas
           const dd = String(date.getDate()).padStart(2, '0');
           setSelectedMatchDate(`${yyyy}-${mm}-${dd}`);
         } else {
-          // DBに日付がなく、パラメータで指定もなければクリア
           if (!initialMatchDate) setSelectedMatchDate('');
         }
 
-        // ★ DBの値は「チェックボックスを表示するかどうか」に使用
         setCanHaveOvertime(data.is_overtime_or_pk === 1);
 
       } catch (error) {
-        // エラー時はリセットしない
+        // エラー処理
       }
     };
     fetchMatchDetails();
@@ -152,16 +144,17 @@ export default function SavingForm({ teamName, setTeamSavings, teamSavings, seas
     const competition = form.competition.value;
     const matchName = form.matchName.value;
     const matchResult = form.matchResult.value;
-    
-    // ★ 修正: チェックボックスが実際にチェックされているかを取得して送信
-    // チェックボックスが表示されていない(null)場合は false
     const isOvertimeOrPK = form.isOvertimeOrPKCheckbox?.checked || false;
-    
     const isStarter = form.isStarter.checked;
     const isFukudaCommentator = form.isFukudaCommentator.checked;
     const goals = parseInt(form.goals.value, 10);
     const assists = parseInt(form.assists.value, 10);
+    
+    // ★ 修正: 2つのチェックボックスを個別に取得
     const isMvp = form.isMvp.checked;
+    const isOnSite = form.isOnSite.checked;
+    const fukuda = form.isFukudaCommentator.checked;
+
     const matchDate = form.matchDate.value;
 
     try {
@@ -177,12 +170,13 @@ export default function SavingForm({ teamName, setTeamSavings, teamSavings, seas
           matchName,
           matchDate,
           matchResult,
-          isOvertimeOrPK, // 実測値を送信
+          isOvertimeOrPK,
           isStarter,
           isFukudaCommentator,
           goals,
           assists,
-          isMvp,          
+          isMvp,    // MVP
+          isOnSite, // 現地観戦（追加）
         }),
       });
 
@@ -198,13 +192,11 @@ export default function SavingForm({ teamName, setTeamSavings, teamSavings, seas
           return newTeamState;
         });
 
-        // 保存成功時、リストから即座に消すためにStateへ追加
         setSavedMatchNames(prev => [...prev, matchName]);
 
         alert(`今回の貯金額は ${addedAmount}円 です！`);
         form.reset();
         
-        // Stateの初期化
         setSelectedMatchDate('');
         setSelectedMatchName('');
         setCanHaveOvertime(false);
@@ -264,7 +256,6 @@ export default function SavingForm({ teamName, setTeamSavings, teamSavings, seas
             onChange={(e) => setSelectedMatchDate(e.target.value)}
             className="w-full p-3 border border-gray-300 rounded-md"
           />
-          <p className="text-xs text-gray-500 mt-1">※自動入力された日付が正しくない場合は修正してください</p>
         </div>
 
         <div className="mb-6">
@@ -277,7 +268,6 @@ export default function SavingForm({ teamName, setTeamSavings, teamSavings, seas
           </select>
         </div>
         
-        {/* ★ 延長・PKの可能性がある場合のみ表示 */}
         {canHaveOvertime && (
           <div className="mb-6">
             <label htmlFor="isOvertimeOrPKCheckbox" className="flex items-center text-sm font-medium text-gray-700">
@@ -314,10 +304,24 @@ export default function SavingForm({ teamName, setTeamSavings, teamSavings, seas
           <label htmlFor="assists" className="block text-sm font-medium text-gray-700 mb-2">アシスト:</label>
           <input type="number" id="assists" name="assists" min="0" defaultValue="0" className="w-full p-3 border border-gray-300 rounded-md" />
         </div>
-        <div className="mb-6">
+
+        {/* ★ 修正: MVPと現地観戦を分割 */}
+        <div className="mb-4">
           <label htmlFor="isMvp" className="flex items-center text-sm font-medium text-gray-700">
             <input type="checkbox" id="isMvp" name="isMvp" className="mr-2 h-4 w-4 text-blue-600 rounded" />
-            MVP獲得/現地観戦
+            MVP獲得
+          </label>
+        </div>
+        <div className="mb-6">
+          <label htmlFor="isOnSite" className="flex items-center text-sm font-medium text-gray-700">
+            <input type="checkbox" id="isOnSite" name="isOnSite" className="mr-2 h-4 w-4 text-blue-600 rounded" />
+            現地観戦
+          </label>
+        </div>
+         <div className="mb-6">
+          <label htmlFor="isFukudaCommentator" className="flex items-center text-sm font-medium text-gray-700">
+            <input type="checkbox" id="isFukudaCommentator" name="isFukudaCommentator" className="mr-2 h-4 w-4 text-blue-600 rounded" />
+            解説福田
           </label>
         </div>
 

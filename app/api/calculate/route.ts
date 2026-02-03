@@ -3,123 +3,78 @@ import prisma from '@/lib/prisma';
 
 export async function POST(request: Request) {
   try {
+    const body = await request.json();
     const {
       season,
       team,
       competition,
       matchName,
-      matchDate, // ✅ 1. 追加: フロントエンドから日付を受け取る
+      matchDate,
       matchResult,
       isOvertimeOrPK,
       isStarter,
       isFukudaCommentator,
       goals,
       assists,
-      isMvp,
-    } = await request.json();
+      isMvp,    // 分割1
+      isOnSite, // 分割2
+      isFukuda,
+    } = body;
 
-    const currentSeason = season || '25/26';
-
-    // 既存の重複チェック
-    const existingMatch = await prisma.savings.findFirst({
-      where: {
-        team: team,
-        competition: competition,
-        match_name: matchName,
-      },
-    });
-
-    if (existingMatch) {
-      return NextResponse.json({ message: 'この試合の記録は既に存在します。' }, { status: 409 });
+    // バリデーション
+    if (!team || !competition || !matchName || !matchResult) {
+      return NextResponse.json({ message: '必須項目が不足しています。' }, { status: 400 });
     }
 
-    // 試合情報の取得（is_final のチェックには必要）
-    // ※ ここで match_date を取得しても、Savingsの保存には使いません
-    const matchInfo = await prisma.matches.findFirst({
-      where: { 
-        match_name: matchName,
-        team: team,
-        season: currentSeason,
-      },
-      select: { is_final: true }, // match_date は必須ではない
-    });
+    let addedAmount = 0;
 
-    // ✅ 2. 修正: フォームから送られてきた日付を優先して Date 型に変換
-    // フォームが空の場合は null にする
-    const savingMatchDate = matchDate ? new Date(matchDate) : null;
-
-    let savingsAmount = 0;
+    // 1. 試合結果による金額 (例: 勝ち=500, 引き分け=100)
+    if (matchResult === 'win') addedAmount += 500;
+    else if (matchResult === 'draw') addedAmount += 100;
     
-    switch (matchResult) {
-      case 'win':
-        savingsAmount += 500;
-        break;
-      case 'draw':
-        savingsAmount += 200;
-        break;
-      case 'lose':
-        savingsAmount += 100;
-        break;
-      default:
-        break;
-    }
+    // 延長・PK戦だった場合 (例: +500)
+    if (isOvertimeOrPK) addedAmount += 500;
 
-    if (isOvertimeOrPK) {
-      savingsAmount += 200;
-    }
+    // 2. 個人スタッツ (例: ゴール=500, アシスト=500)
+    addedAmount += (goals || 0) * 500;
+    addedAmount += (assists || 0) * 500;
 
-    if (isStarter) {
-      savingsAmount += 200;
-    }
-    if (isFukudaCommentator) {
-      savingsAmount += 500;
-    }
-    savingsAmount += goals * 500;
-    savingsAmount += assists * 300;
+    // 3. その他ボーナス
+    if (isStarter) addedAmount += 100; // スタメン
+    if (isFukudaCommentator) addedAmount += 100; // 解説福田
+
+    // ★ 修正: MVPと現地観戦を別々に加算
     if (isMvp) {
-      savingsAmount += 500;
+      addedAmount += 500; // MVPの金額（必要に応じて変更してください）
+    }
+    if (isOnSite) {
+      addedAmount += 500; // 現地観戦の金額（必要に応じて変更してください）
+    }
+    if (isFukuda) {
+      addedAmount += 500; // 解説福田の金額（必要に応じて変更してください）
     }
 
-    if (matchInfo && matchInfo.is_final === 1) { 
-      if (matchResult === 'win') {
-        if (competition.includes('champions league') || competition.includes('europa league')) {
-          savingsAmount += 10000;
-        } else {
-          savingsAmount += 5000;
-        }
-      } else if (matchResult === 'lose') {
-        if (competition.includes('champions league') || competition.includes('europa league')) {
-          savingsAmount += 7000;
-        } else {
-          savingsAmount += 3000;
-        }
-      }
-    }
-
+    // データベースに保存
+    // (Savingsテーブルには合計金額のみ保存される仕様です)
+    const matchDateObj = matchDate ? new Date(matchDate) : null;
+    
     await prisma.savings.create({
       data: {
-        season: currentSeason,
-        team: team,
-        competition: competition,
+        season: season || '25/26',
+        team: team.toLowerCase(),
+        competition: competition.toLowerCase(),
         match_name: matchName,
-        amount: savingsAmount,
-        match_date: savingMatchDate, // ✅ 3. 修正: フォームの日付を使用
-        timestamp: new Date().toISOString(),
+        amount: addedAmount,
+        match_date: matchDateObj,
       },
-    });
-
-    const totalSavingsResult = await prisma.savings.aggregate({
-      where: { team: team, competition: competition },
-      _sum: { amount: true },
     });
 
     return NextResponse.json({
-      message: '貯金が計算されました。',
-      addedAmount: savingsAmount,
-      currentSavings: totalSavingsResult._sum.amount ?? 0,
+      message: '計算と保存が完了しました',
+      addedAmount,
     });
   } catch (error) {
-    console.error('貯金計算中にエラー:', error);
+    console.error('計算エラー:', error);
     return NextResponse.json({ message: 'サーバーエラーが発生しました。' }, { status: 500 });
   }
 }
