@@ -41,7 +41,7 @@ export async function POST(request: Request) {
 
     // 3. その他ボーナス
     if (isStarter) addedAmount += 100; // スタメン
-    if (isFukudaCommentator) addedAmount += 100; // 解説福田
+    if (isFukudaCommentator) addedAmount += 500; // 解説福田
 
     // ★ 修正: MVPと現地観戦を別々に加算
     if (isMvp) {
