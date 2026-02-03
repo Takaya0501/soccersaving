@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     else if (matchResult === 'draw') addedAmount += 100;
     
     // 延長・PK戦だった場合 (例: +500)
-    if (isOvertimeOrPK) addedAmount += 500;
+    if (isOvertimeOrPK) addedAmount += 100;
 
     // 2. 個人スタッツ (例: ゴール=500, アシスト=500)
     addedAmount += (goals || 0) * 500;
